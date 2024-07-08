@@ -14,6 +14,7 @@ use crossterm::{
 pub struct UI {
     pub stdout: Stdout,
     pub current_input: Option<KeyCode>,
+    last_input: Option<KeyCode>,
     input_reciever: Receiver<Option<KeyCode>>,
 }
 
@@ -27,6 +28,7 @@ impl UI {
         UI {
             stdout: io::stdout(),
             current_input: None,
+            last_input: None,
             input_reciever: rx,
         }
     }
@@ -48,6 +50,7 @@ impl UI {
         Ok(())
     }
     pub fn update_input(&mut self) {
+        self.last_input = self.current_input;
         self.current_input = match self.input_reciever.try_recv() {
             Ok(ko) => match ko {
                 Some(k) => Some(k),

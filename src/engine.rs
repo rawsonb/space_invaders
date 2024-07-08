@@ -15,7 +15,7 @@ use crossterm::{
 use crate::graphics::UI;
 
 pub trait Update {
-    fn update(&mut self, delta: f64, world: &mut World, id: i64) {}
+    fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {}
 }
 
 struct Entity {
