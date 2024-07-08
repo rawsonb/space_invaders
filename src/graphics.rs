@@ -6,25 +6,26 @@ use crossterm::{
     QueueableCommand,
 };
 
-pub struct GUI {
+pub struct UI {
     pub stdout: Stdout,
 }
 
-impl Default for GUI {
+impl Default for UI {
     fn default() -> Self {
-        GUI {
+        UI {
             stdout: io::stdout(),
         }
     }
 }
 
-impl GUI {
+impl UI {
     pub fn terminal_draw(
+        &mut self,
         character: char,
         position: (u16, u16),
         color: Color,
     ) -> io::Result<()> {
-        io::stdout()
+        self.stdout
             .queue(cursor::MoveTo(position.0, position.1))?
             .queue(style::PrintStyledContent((character).with(color)))?;
         Ok(())

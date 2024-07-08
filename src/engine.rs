@@ -12,7 +12,7 @@ use crossterm::{
     terminal, ExecutableCommand, QueueableCommand,
 };
 
-use crate::graphics::GUI;
+use crate::graphics::UI;
 
 pub trait Update {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {}
@@ -27,7 +27,7 @@ pub struct World {
     entities: Vec<Entity>,
     map: Vec<Vec<(char, Color)>>,
     pub current_input: Option<KeyCode>,
-    gui: GUI,
+    ui: UI,
 }
 
 impl<'a> World {
@@ -36,7 +36,7 @@ impl<'a> World {
             entities: Vec::new(),
             map: vec![vec![('#', Color::Black); map_height]; map_width],
             current_input: None,
-            gui: GUI::default(),
+            ui: UI::default(),
         }
     }
 
@@ -77,13 +77,13 @@ impl<'a> World {
     }
 
     pub fn debug_draw(&mut self, text: &str) {
-        let _ = self.gui.debug_draw(text, self.map[0].len() as u16);
+        let _ = self.ui.debug_draw(text, self.map[0].len() as u16);
     }
 
     fn draw_map(&mut self) {
         for r in 0..self.map.len() {
             for c in 0..self.map[0].len() {
-                let _ = GUI::terminal_draw(
+                let _ = self.ui.terminal_draw(
                     self.map[r][c].0,
                     (r as u16, c as u16),
                     self.map[r][c].1,
@@ -94,7 +94,7 @@ impl<'a> World {
     pub fn init(&mut self) -> io::Result<()> {
         let _ = terminal::enable_raw_mode();
 
-        self.gui
+        self.ui
             .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(Hide)?;
@@ -107,7 +107,7 @@ impl<'a> World {
 
         let _ = self.game_loop(rx);
 
-        self.gui
+        self.ui
             .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(MoveTo(0, 0))?
@@ -148,7 +148,7 @@ impl<'a> World {
             }
         }
 
-        self.gui
+        self.ui
             .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(MoveTo(0, 0))?
@@ -167,7 +167,7 @@ impl<'a> World {
         self.entities.append(&mut entity_queue);
 
         self.draw_map();
-        _ = self.gui.stdout.flush();
+        _ = self.ui.stdout.flush();
         self.clear_map();
     }
 }
