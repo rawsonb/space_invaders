@@ -15,16 +15,16 @@ struct Ship {
 impl Update for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         world.debug_draw(format!("{}", delta).as_str());
-        match world.current_input {
+        match world.ui.current_input {
             Some(KeyCode::Left) => {
                 self.position.0 =
                     u16::clamp(self.position.0 - 1, 1, MAP_WIDTH - 2);
-                world.current_input = None;
+                world.ui.current_input = None;
             }
             Some(KeyCode::Right) => {
                 self.position.0 =
                     u16::clamp(self.position.0 + 1, 1, MAP_WIDTH - 2);
-                world.current_input = None;
+                world.ui.current_input = None;
             }
             Some(KeyCode::Up) => {
                 world.add_entity(Bullet {
@@ -33,7 +33,7 @@ impl Update for Ship {
                         self.position.1 as f64 - 1.0,
                     ),
                 });
-                world.current_input = None;
+                world.ui.current_input = None;
             }
             _ => {}
         }

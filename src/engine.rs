@@ -24,10 +24,9 @@ struct Entity {
 }
 
 pub struct World {
-    entities: Vec<Entity>,
+    pub entities: Vec<Entity>,
     map: Vec<Vec<(char, Color)>>,
-    pub current_input: Option<KeyCode>,
-    ui: UI,
+    pub ui: UI,
 }
 
 impl<'a> World {
@@ -35,8 +34,7 @@ impl<'a> World {
         World {
             entities: Vec::new(),
             map: vec![vec![('#', Color::Black); map_height]; map_width],
-            current_input: None,
-            ui: UI::default(),
+            ui: UI::new(),
         }
     }
 
@@ -91,6 +89,7 @@ impl<'a> World {
             }
         }
     }
+
     pub fn init(&mut self) -> io::Result<()> {
         let _ = terminal::enable_raw_mode();
 
@@ -99,13 +98,7 @@ impl<'a> World {
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(Hide)?;
 
-        let (tx, rx) = mpsc::channel();
-
-        thread::spawn(move || loop {
-            tx.send(read_inputs()).unwrap();
-        });
-
-        let _ = self.game_loop(rx);
+        let _ = self.game_loop();
 
         self.ui
             .stdout
@@ -118,29 +111,22 @@ impl<'a> World {
         Ok(())
     }
 
-    fn game_loop(&mut self, rx: Receiver<Option<KeyCode>>) -> io::Result<()> {
+    fn game_loop(&mut self) -> io::Result<()> {
         let mut now = SystemTime::now();
         loop {
             match now.elapsed() {
                 Ok(elapsed) => {
                     now = SystemTime::now();
-
-                    self.current_input = match rx.try_recv() {
-                        Ok(ko) => match ko {
-                            Some(k) => Some(k),
-                            None => self.current_input,
-                        },
-                        Err(_) => self.current_input,
-                    };
-
+                    self.ui.update_input();
                     if self
+                        .ui
                         .current_input
                         .is_some_and(|x| x == KeyCode::Char('q'))
                     {
                         break;
                     }
 
-                    self.update(elapsed.as_secs_f64());
+                    self.update_entities(elapsed.as_secs_f64());
                 }
                 Err(e) => {
                     println!("Error: {e:?}");
@@ -158,7 +144,7 @@ impl<'a> World {
         Ok(())
     }
 
-    fn update(&mut self, delta: f64) {
+    fn update_entities(&mut self, delta: f64) {
         let mut entity_queue: Vec<Entity> = Vec::new();
         entity_queue.append(&mut self.entities);
         for entity in entity_queue.iter_mut() {
@@ -169,15 +155,5 @@ impl<'a> World {
         self.draw_map();
         _ = self.ui.stdout.flush();
         self.clear_map();
-    }
-}
-
-fn read_inputs() -> Option<KeyCode> {
-    match read() {
-        Ok(event) => match event {
-            Event::Key(event) => Some(event.code),
-            _ => None,
-        },
-        _ => None,
     }
 }
