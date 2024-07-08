@@ -21,32 +21,20 @@ struct Entity {
     id: i64,
 }
 
-impl<'a> Update for Entity {
-    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        self.data.update(delta, world, id);
-    }
-}
-
 pub struct World {
     entities: Vec<Entity>,
     map: Vec<Vec<(char, Color)>>,
-<<<<<<< HEAD
     pub current_input: Option<KeyCode>,
     tick_time: f64,
 }
 
-impl<'a> World<'a> {
-    pub fn new(map_width: usize, map_height: usize, tick_time: f64) -> Self {
-=======
-}
-
 impl<'a> World {
     pub fn new(map_width: usize, map_height: usize) -> Self {
->>>>>>> refs/remotes/origin/main
         World {
             entities: Vec::new(),
             map: vec![vec![(' ', Color::Black); map_height]; map_width],
             tick_time: tick_time,
+            current_input: None,
         }
     }
 
@@ -78,7 +66,6 @@ impl<'a> World {
         self.map[position.0 as usize][position.1 as usize] = (character, color);
     }
 
-<<<<<<< HEAD
     fn terminal_draw(
         &mut self,
         character: char,
@@ -97,9 +84,6 @@ impl<'a> World {
             .queue(style::PrintStyledContent((text).with(Color::Red)))?;
         Ok(())
     }
-
-=======
->>>>>>> refs/remotes/origin/main
     fn draw_map(&mut self) {
         for r in 0..self.map.len() {
             for c in 0..self.map[0].len() {
@@ -120,7 +104,7 @@ impl<'a> World {
         }
     }
 
-    pub fn init(&mut self, gui: GUI) -> io::Result<()> {
+    pub fn init(&mut self, gui: &mut GUI) -> io::Result<()> {
         let _ = terminal::enable_raw_mode();
 
         gui.stdout
@@ -133,9 +117,9 @@ impl<'a> World {
             tx.send(read_inputs()).unwrap();
         });
 
-        self.game_loop(rx);
+        self.game_loop(gui, rx);
 
-        self.stdout
+        gui.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(MoveTo(0, 0))?
             .execute(Show)?;
@@ -145,7 +129,11 @@ impl<'a> World {
         Ok(())
     }
 
-    fn game_loop(&mut self, rx: Receiver<Option<KeyCode>>) {
+    fn game_loop(
+        &mut self,
+        &mut gui: GUI,
+        rx: Receiver<Option<KeyCode>>,
+    ) -> io::Result<()> {
         let mut now = SystemTime::now();
         loop {
             match now.elapsed() {
@@ -174,8 +162,6 @@ impl<'a> World {
                 }
             }
         }
-<<<<<<< HEAD
-=======
 
         gui.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
@@ -184,10 +170,9 @@ impl<'a> World {
         let _ = terminal::disable_raw_mode();
 
         Ok(())
->>>>>>> refs/remotes/origin/main
     }
 
-    fn update(&mut self, gui: GUI, delta: f64) {
+    fn update(&mut self, mut gui: GUI, delta: f64) {
         let mut entity_queue: Vec<Entity> = Vec::new();
         entity_queue.append(&mut self.entities);
         for entity in entity_queue.iter_mut() {
