@@ -13,7 +13,7 @@ struct Ship {
 }
 
 impl Update for Ship {
-    fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {
+    fn update(&mut self, delta: f64, world: &mut World, _id: i64) {
         world.debug_draw(format!("{}", delta).as_str());
         match world.ui.current_input {
             Some(KeyCode::Left) => {
@@ -44,7 +44,7 @@ impl Update for Ship {
 struct Border {}
 
 impl Update for Border {
-    fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {
+    fn update(&mut self, _delta: f64, world: &mut World, _id: i64) {
         for r in 0..MAP_WIDTH {
             for c in 0..MAP_HEIGHT {
                 if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1
