@@ -30,8 +30,8 @@ impl UI {
             .queue(style::PrintStyledContent((character).with(color)))?;
         Ok(())
     }
-    pub fn debug_draw(&mut self, text: &str, line: u16) -> io::Result<()> {
-        self.stdout
+    pub fn debug_draw(text: &str, line: u16) -> io::Result<()> {
+        io::stdout()
             .queue(cursor::MoveTo(0, line))?
             .queue(style::PrintStyledContent((text).with(Color::Red)))?;
         Ok(())
