@@ -7,6 +7,7 @@ mod graphics;
 const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25; // in characters
 const BULLET_SPEED: f64 = 3.5; // characters per second
+const PLAYER_SPEED: f64 = 4.5;
 
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
