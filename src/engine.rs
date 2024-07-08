@@ -1,5 +1,7 @@
+use core::slice;
 use std::{
     io::{self, Stdout, Write},
+    iter::Map,
     sync::mpsc::{self, Receiver},
     thread,
     time::SystemTime,
@@ -18,13 +20,14 @@ pub trait Update {
     fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {}
 }
 
-struct Entity {
+struct EntityData {
     data: Box<dyn Update>,
     id: i64,
+    tags: Vec<String>,
 }
 
 pub struct World {
-    pub entities: Vec<Entity>,
+    pub entities: Map<i64, EntityData>,
     map: Vec<Vec<(char, Color)>>,
     pub ui: UI,
 }
@@ -47,9 +50,10 @@ impl<'a> World {
     }
 
     pub fn add_entity(&'_ mut self, entity: impl Update + 'static) {
-        self.entities.push(Entity {
+        self.entities.push(EntityData {
             data: Box::new(entity),
             id: self.entities.len() as i64 + 1,
+            tags: vec![],
         })
     }
 
@@ -145,7 +149,7 @@ impl<'a> World {
     }
 
     fn update_entities(&mut self, delta: f64) {
-        let mut entity_queue: Vec<Entity> = Vec::new();
+        let mut entity_queue: Vec<EntityData> = Vec::new();
         entity_queue.append(&mut self.entities);
         for entity in entity_queue.iter_mut() {
             entity.data.update(delta, self, entity.id);
@@ -155,5 +159,9 @@ impl<'a> World {
         self.draw_map();
         _ = self.ui.stdout.flush();
         self.clear_map();
+    }
+
+    fn map_query(&mut self, position: (usize, usize)) -> (char, Color) {
+        return self.map[position.0][position.1];
     }
 }

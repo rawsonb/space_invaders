@@ -1,5 +1,5 @@
 use crossterm::{cursor::position, event::KeyCode};
-use engine::{Update, World};
+use engine::{Entity, World};
 
 mod engine;
 mod graphics;
@@ -15,7 +15,7 @@ fn main() {
         position: (12.0, 13.0),
         velocity: 0.0,
     });
-    world.add_entity(Border {});
+    world.add_entity(Wall {});
     let _ = world.init();
 }
 
@@ -24,7 +24,7 @@ struct Ship {
     velocity: f64,
 }
 
-impl Update for Ship {
+impl Entity for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         world.debug_draw(format!("{:?}", self.velocity).as_str());
         world.debug_draw(format!("\n{:?}", self.position.0).as_str());
@@ -59,9 +59,13 @@ impl Update for Ship {
                         self.position.1 as f64 - 1.0,
                     ),
                 });
+                self.velocity = 0.0;
                 world.ui.current_input = None;
             }
-            _ => {}
+            _ => {
+                self.velocity = 0.0;
+                world.ui.current_input = None;
+            }
         }
         world.draw(
             '^',
@@ -74,15 +78,15 @@ impl Update for Ship {
     }
 }
 
-struct Border {}
+struct Wall {}
 
-impl Update for Border {
+impl Entity for Wall {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         for r in 0..MAP_WIDTH {
             for c in 0..MAP_HEIGHT {
                 if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1
                 {
-                    world.draw('#', (r, c), crossterm::style::Color::Yellow);
+                    world.draw('#', (r, c), crossterm::style::Color::Grey);
                 }
             }
         }
@@ -93,7 +97,7 @@ struct Bullet {
     position: (f64, f64),
 }
 
-impl Update for Bullet {
+impl Entity for Bullet {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         self.position =
             (self.position.0, self.position.1 - delta * BULLET_SPEED);
@@ -114,4 +118,12 @@ impl Update for Bullet {
     }
 }
 
-struct Blocker {}
+struct Barrier {
+    position: (u16, u16),
+}
+
+impl Entity for Barrier {
+    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
+        world.draw('#', self.position, crossterm::style::Color::Yellow);
+    }
+}
