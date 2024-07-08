@@ -1,6 +1,6 @@
 use std::{
     io::{self, Stdout, Write},
-    sync::mpsc,
+    sync::mpsc::{self, Receiver},
     thread,
     time::SystemTime,
 };
@@ -33,16 +33,18 @@ pub struct World<'a> {
     stdout: Stdout,
     map: Vec<Vec<(char, Color)>>,
     pub current_input: Option<KeyCode>,
+    tick_time: f64,
 }
 
 impl<'a> World<'a> {
-    pub fn new(map_width: usize, map_height: usize) -> Self {
+    pub fn new(map_width: usize, map_height: usize, tick_time: f64) -> Self {
         World {
             entities: Vec::new(),
             last_id: 0,
             current_input: None,
             stdout: io::stdout(),
             map: vec![vec![(' ', Color::Black); map_height]; map_width],
+            tick_time: tick_time,
         }
     }
 
@@ -85,12 +87,14 @@ impl<'a> World<'a> {
             .queue(style::PrintStyledContent((character).with(color)))?;
         Ok(())
     }
+
     pub fn debug_draw(&mut self, text: &str) -> io::Result<()> {
         self.stdout
             .queue(cursor::MoveTo(0, self.map[0].len() as u16))?
             .queue(style::PrintStyledContent((text).with(Color::Red)))?;
         Ok(())
     }
+
     fn draw_map(&mut self) {
         for r in 0..self.map.len() {
             for c in 0..self.map[0].len() {
@@ -113,7 +117,6 @@ impl<'a> World<'a> {
 
     pub fn init(&mut self) -> io::Result<()> {
         let _ = terminal::enable_raw_mode();
-        let mut now = SystemTime::now();
 
         self.stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
@@ -125,6 +128,20 @@ impl<'a> World<'a> {
             tx.send(read_inputs()).unwrap();
         });
 
+        self.game_loop(rx);
+
+        self.stdout
+            .execute(terminal::Clear(terminal::ClearType::All))?
+            .execute(MoveTo(0, 0))?
+            .execute(Show)?;
+
+        let _ = terminal::disable_raw_mode();
+
+        Ok(())
+    }
+
+    fn game_loop(&mut self, rx: Receiver<Option<KeyCode>>) {
+        let mut now = SystemTime::now();
         loop {
             match now.elapsed() {
                 Ok(elapsed) => {
@@ -152,14 +169,6 @@ impl<'a> World<'a> {
                 }
             }
         }
-
-        self.stdout
-            .execute(terminal::Clear(terminal::ClearType::All))?
-            .execute(MoveTo(0, 0))?
-            .execute(Show)?;
-        let _ = terminal::disable_raw_mode();
-
-        Ok(())
     }
 
     fn update(&mut self, delta: f64) {
