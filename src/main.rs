@@ -37,14 +37,14 @@ impl Update for Ship {
 
         match world.ui.current_input {
             Some(KeyCode::Left) => {
-                if world.ui.last_input.is_some_and(|x| x == KeyCode::Left) {
+                if world.ui.last_input.is_some_and(|x| x == KeyCode::Right) {
                     self.velocity = 0.0;
                 } else {
                     self.velocity = -PLAYER_SPEED;
                 }
             }
             Some(KeyCode::Right) => {
-                if world.ui.last_input.is_some_and(|x| x == KeyCode::Right) {
+                if world.ui.last_input.is_some_and(|x| x == KeyCode::Left) {
                     self.velocity = 0.0;
                 } else {
                     self.velocity = PLAYER_SPEED;
