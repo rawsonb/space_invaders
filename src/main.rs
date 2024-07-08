@@ -5,8 +5,8 @@ mod engine;
 mod graphics;
 
 const MAP_HEIGHT: u16 = 15;
-const MAP_WIDTH: u16 = 25;
-const BULLET_SPEED: f64 = 3.5;
+const MAP_WIDTH: u16 = 25; // in characters
+const BULLET_SPEED: f64 = 3.5; // characters per second
 
 struct Ship {
     position: (u16, u16),
