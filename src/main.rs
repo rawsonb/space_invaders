@@ -7,23 +7,25 @@ mod graphics;
 const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25;
 const BULLET_SPEED: f64 = 3.5;
+const PLAYER_SPEED: f64 = 3.5;
 
 struct Ship {
-    position: (u16, u16),
+    position: (f64, f64),
+    move_delta: f64,
 }
 
 impl Update for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         world.debug_draw(format!("{}", delta).as_str());
+
+        self.position.0 =
+            f64::clamp(self.move_delta, 1.0, MAP_WIDTH as f64 - 2.0);
+
         match world.ui.current_input {
             Some(KeyCode::Left) => {
-                self.position.0 =
-                    u16::clamp(self.position.0 - 1, 1, MAP_WIDTH - 2);
                 world.ui.current_input = None;
             }
             Some(KeyCode::Right) => {
-                self.position.0 =
-                    u16::clamp(self.position.0 + 1, 1, MAP_WIDTH - 2);
                 world.ui.current_input = None;
             }
             Some(KeyCode::Up) => {
@@ -37,7 +39,14 @@ impl Update for Ship {
             }
             _ => {}
         }
-        world.draw('^', self.position, crossterm::style::Color::Green);
+        world.draw(
+            '*',
+            (
+                self.position.0.round() as u16,
+                self.position.1.round() as u16,
+            ),
+            crossterm::style::Color::Green,
+        );
     }
 }
 
@@ -81,9 +90,11 @@ impl Update for Bullet {
     }
 }
 
+struct Blocker {}
+
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
     world.add_entity(Ship { position: (1, 13) });
     world.add_entity(Border {});
-    world.init();
+    let _ = world.init();
 }
