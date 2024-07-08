@@ -2,6 +2,7 @@ use crossterm::{cursor::position, event::KeyCode};
 use engine::{Update, World};
 
 mod engine;
+mod graphics;
 
 const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25;

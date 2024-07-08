@@ -12,6 +12,8 @@ use crossterm::{
     terminal, ExecutableCommand, QueueableCommand,
 };
 
+use crate::graphics::GUI;
+
 pub trait Update {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {}
 }
@@ -32,9 +34,17 @@ impl<'a> World {
     pub fn new(map_width: usize, map_height: usize) -> Self {
         World {
             entities: Vec::new(),
-            map: vec![vec![(' ', Color::Black); map_height]; map_width],
+            map: vec![vec![('#', Color::Black); map_height]; map_width],
             current_input: None,
             gui: GUI::default(),
+        }
+    }
+
+    fn clear_map(&mut self) {
+        let width = self.map[0].len();
+        for row in self.map.iter_mut() {
+            row.clear();
+            row.append(&mut vec![(' ', Color::Black); width])
         }
     }
 
@@ -95,7 +105,7 @@ impl<'a> World {
             tx.send(read_inputs()).unwrap();
         });
 
-        self.game_loop(rx);
+        let _ = self.game_loop(rx);
 
         self.gui
             .stdout
@@ -158,6 +168,7 @@ impl<'a> World {
 
         self.draw_map();
         _ = self.gui.stdout.flush();
+        self.clear_map();
     }
 }
 
@@ -168,36 +179,5 @@ fn read_inputs() -> Option<KeyCode> {
             _ => None,
         },
         _ => None,
-    }
-}
-
-pub struct GUI {
-    stdout: Stdout,
-}
-
-impl Default for GUI {
-    fn default() -> Self {
-        GUI {
-            stdout: io::stdout(),
-        }
-    }
-}
-
-impl GUI {
-    pub fn terminal_draw(
-        character: char,
-        position: (u16, u16),
-        color: Color,
-    ) -> io::Result<()> {
-        io::stdout()
-            .queue(cursor::MoveTo(position.0, position.1))?
-            .queue(style::PrintStyledContent((character).with(color)))?;
-        Ok(())
-    }
-    pub fn debug_draw(&mut self, text: &str, line: u16) -> io::Result<()> {
-        self.stdout
-            .queue(cursor::MoveTo(0, line))?
-            .queue(style::PrintStyledContent((text).with(Color::Red)))?;
-        Ok(())
     }
 }
