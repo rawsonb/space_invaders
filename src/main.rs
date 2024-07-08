@@ -12,7 +12,7 @@ const PLAYER_SPEED: f64 = 4.5; // characters per second
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
     world.add_entity(Ship {
-        position: (1.0, 13.0),
+        position: (12.0, 13.0),
         velocity: 0.0,
     });
     world.add_entity(Border {});
@@ -39,6 +39,7 @@ impl Update for Ship {
             Some(KeyCode::Left) => {
                 if world.ui.last_input.is_some_and(|x| x == KeyCode::Right) {
                     self.velocity = 0.0;
+                    world.ui.current_input = None;
                 } else {
                     self.velocity = -PLAYER_SPEED;
                 }
@@ -46,6 +47,7 @@ impl Update for Ship {
             Some(KeyCode::Right) => {
                 if world.ui.last_input.is_some_and(|x| x == KeyCode::Left) {
                     self.velocity = 0.0;
+                    world.ui.current_input = None;
                 } else {
                     self.velocity = PLAYER_SPEED;
                 }
