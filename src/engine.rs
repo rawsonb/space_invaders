@@ -66,12 +66,8 @@ impl<'a> World {
         self.map[position.0 as usize][position.1 as usize] = (character, color);
     }
 
-    pub fn debug_draw(&mut self, text: &str) -> io::Result<()> {
-        self.gui
-            .stdout
-            .queue(cursor::MoveTo(0, self.map[0].len() as u16))?
-            .queue(style::PrintStyledContent((text).with(Color::Red)))?;
-        Ok(())
+    pub fn debug_draw(&mut self, text: &str) ->{
+        self.gui.debug_draw(text, self.map[0].len());
     }
 
     fn draw_map(&mut self) {
@@ -206,6 +202,12 @@ impl GUI {
         io::stdout()
             .queue(cursor::MoveTo(position.0, position.1))?
             .queue(style::PrintStyledContent((character).with(color)))?;
+        Ok(())
+    }
+    pub fn debug_draw(&mut self, text: &str, line: u16) -> io::Result<()> {
+        self.stdout
+            .queue(cursor::MoveTo(0, line))?
+            .queue(style::PrintStyledContent((text).with(Color::Red)))?;
         Ok(())
     }
 }
