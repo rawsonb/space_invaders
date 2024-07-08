@@ -26,11 +26,26 @@ struct Ship {
 
 impl Update for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        world.debug_draw(format!("{:?}", self.velocity).as_str());
-        world.debug_draw(format!("\n{:?}", self.position.0).as_str());
-        world.debug_draw(format!("\n\n{:?}", world.ui.last_input).as_str());
-        world
-            .debug_draw(format!("\n\n\n{:?}", world.ui.current_input).as_str());
+        world.debug_draw(format!("Velocity: {:?}", self.velocity).as_str());
+        world.debug_draw(
+            format!("\n X_Position: {:?}", self.position.0).as_str(),
+        );
+        world.debug_draw(
+            format!("\n\n Last Input: {:?}", world.ui.last_input).as_str(),
+        );
+        world.debug_draw(
+            format!("\n\n\n Current Input: {:?}", world.ui.current_input)
+                .as_str(),
+        );
+        world.debug_draw(
+            format!("\n\n\n Current Input: {:?}", world.ui.current_input)
+                .as_str(),
+        );
+        let entity_data = world.get_entity_data(id);
+        world.debug_draw(
+            format!("\n\n\n\n Current Input: {:?}", entity_data[0].tags)
+                .as_str(),
+        );
         self.position.0 += self.velocity * delta;
         self.position.0 =
             f64::clamp(self.position.0, 1.0, MAP_WIDTH as f64 - 2.0);
@@ -74,7 +89,7 @@ impl Update for Ship {
             ),
             '^',
             crossterm::style::Color::Green,
-            id
+            id,
         );
     }
 }
@@ -112,9 +127,9 @@ impl Update for Bullet {
                     self.position.0.round() as u16,
                     self.position.1.round() as u16,
                 ),
-                '*', 
+                '*',
                 crossterm::style::Color::Red,
-                id
+                id,
             );
         }
     }
@@ -126,6 +141,6 @@ struct Barrier {
 
 impl Update for Barrier {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
-        world.draw(self.position,'#', crossterm::style::Color::Yellow, id);
+        world.draw(self.position, '#', crossterm::style::Color::Yellow, id);
     }
 }

@@ -20,10 +20,10 @@ pub trait Update {
     fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {}
 }
 
-struct EntityData {
-    entity: Box<dyn Update>,
-    id: i64,
-    tags: Vec<String>,
+pub struct EntityData {
+    pub entity: Box<dyn Update>,
+    pub id: i64,
+    pub tags: Vec<String>,
 }
 
 pub struct World {
@@ -36,7 +36,10 @@ impl<'a> World {
     pub fn new(map_width: usize, map_height: usize) -> Self {
         World {
             entities: Vec::new(),
-            map: vec![vec![('#', Color::Black, Vec::new()); map_height]; map_width],
+            map: vec![
+                vec![('#', Color::Black, Vec::new()); map_height];
+                map_width
+            ],
             ui: UI::new(),
         }
     }
@@ -165,7 +168,17 @@ impl<'a> World {
         self.clear_map();
     }
 
-    fn map_query(&mut self, position: (usize, usize)) -> (char, Color, Vec<i64>) {
+    fn map_query(
+        &mut self,
+        position: (usize, usize),
+    ) -> (char, Color, Vec<i64>) {
         return self.map[position.0][position.1].clone();
+    }
+
+    pub fn get_entity_data(&self, id: i64) -> Vec<&EntityData> {
+        (&self.entities)
+            .into_iter()
+            .filter(|x| x.id == id)
+            .collect()
     }
 }
