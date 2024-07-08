@@ -27,8 +27,8 @@ struct EntityData {
 }
 
 pub struct World {
-    pub entities: Map<i64, EntityData>,
-    map: Vec<Vec<(char, Color)>>,
+    pub entities: Vec<EntityData>,
+    map: Vec<Vec<(char, Color, Vec<i64>)>>,
     pub ui: UI,
 }
 
@@ -36,7 +36,7 @@ impl<'a> World {
     pub fn new(map_width: usize, map_height: usize) -> Self {
         World {
             entities: Vec::new(),
-            map: vec![vec![('#', Color::Black); map_height]; map_width],
+            map: vec![vec![('#', Color::Black, Vec::new()); map_height]; map_width],
             ui: UI::new(),
         }
     }
@@ -45,7 +45,7 @@ impl<'a> World {
         let width = self.map[0].len();
         for row in self.map.iter_mut() {
             row.clear();
-            row.append(&mut vec![(' ', Color::Black); width])
+            row.append(&mut vec![(' ', Color::Black, Vec::new()); width])
         }
     }
 
@@ -68,14 +68,18 @@ impl<'a> World {
 
     pub fn draw(
         &mut self,
-        character: char,
         position: (u16, u16),
+        character: char,
         color: Color,
+        id: i64,
     ) {
         let mut position = position;
         position.0 = position.0.clamp(0, self.map.len() as u16 - 1);
         position.1 = position.1.clamp(0, self.map[0].len() as u16 - 1);
-        self.map[position.0 as usize][position.1 as usize] = (character, color);
+        let pos = &mut self.map[position.0 as usize][position.1 as usize];
+        pos.0 = character;
+        pos.1 = color;
+        pos.2.push(id);
     }
 
     pub fn debug_draw(&mut self, text: &str) {
@@ -161,7 +165,7 @@ impl<'a> World {
         self.clear_map();
     }
 
-    fn map_query(&mut self, position: (usize, usize)) -> (char, Color) {
-        return self.map[position.0][position.1];
+    fn map_query(&mut self, position: (usize, usize)) -> (char, Color, Vec<i64>) {
+        return self.map[position.0][position.1].clone();
     }
 }
