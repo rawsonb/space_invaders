@@ -30,6 +30,7 @@ pub struct World {
     pub entities: Vec<EntityData>,
     map: Vec<Vec<(char, Color, Vec<i64>)>>,
     pub ui: UI,
+    next_id: i64
 }
 
 impl<'a> World {
@@ -41,6 +42,7 @@ impl<'a> World {
                 map_width
             ],
             ui: UI::new(),
+            next_id: 0
         }
     }
 
@@ -55,9 +57,10 @@ impl<'a> World {
     pub fn add_entity(&'_ mut self, entity_data: impl Update + 'static) {
         self.entities.push(EntityData {
             entity: Box::new(entity_data),
-            id: self.entities.len() as i64 + 1,
+            id: self.next_id,
             tags: vec![],
-        })
+        });
+        self.next_id += 1;
     }
 
     pub fn remove_entity(&mut self, id: i64) {
