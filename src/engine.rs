@@ -21,7 +21,7 @@ pub trait Update {
 }
 
 struct EntityData {
-    data: Box<dyn Update>,
+    entity: Box<dyn Update>,
     id: i64,
     tags: Vec<String>,
 }
@@ -49,9 +49,9 @@ impl<'a> World {
         }
     }
 
-    pub fn add_entity(&'_ mut self, entity: impl Update + 'static) {
+    pub fn add_entity(&'_ mut self, entity_data: impl Update + 'static) {
         self.entities.push(EntityData {
-            data: Box::new(entity),
+            entity: Box::new(entity_data),
             id: self.entities.len() as i64 + 1,
             tags: vec![],
         })
@@ -151,8 +151,8 @@ impl<'a> World {
     fn update_entities(&mut self, delta: f64) {
         let mut entity_queue: Vec<EntityData> = Vec::new();
         entity_queue.append(&mut self.entities);
-        for entity in entity_queue.iter_mut() {
-            entity.data.update(delta, self, entity.id);
+        for entitydata in entity_queue.iter_mut() {
+            entitydata.entity.update(delta, self, entitydata.id);
         }
         self.entities.append(&mut entity_queue);
 
