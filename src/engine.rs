@@ -25,7 +25,7 @@ pub struct World {
     entities: Vec<Entity>,
     map: Vec<Vec<(char, Color)>>,
     pub current_input: Option<KeyCode>,
-    tick_time: f64,
+    gui: GUI,
 }
 
 impl<'a> World {
@@ -33,8 +33,8 @@ impl<'a> World {
         World {
             entities: Vec::new(),
             map: vec![vec![(' ', Color::Black); map_height]; map_width],
-            tick_time: tick_time,
             current_input: None,
+            gui: GUI::default(),
         }
     }
 
@@ -66,24 +66,14 @@ impl<'a> World {
         self.map[position.0 as usize][position.1 as usize] = (character, color);
     }
 
-    fn terminal_draw(
-        &mut self,
-        character: char,
-        position: (u16, u16),
-        color: Color,
-    ) -> io::Result<()> {
-        self.stdout
-            .queue(cursor::MoveTo(position.0, position.1))?
-            .queue(style::PrintStyledContent((character).with(color)))?;
-        Ok(())
-    }
-
     pub fn debug_draw(&mut self, text: &str) -> io::Result<()> {
-        self.stdout
+        self.gui
+            .stdout
             .queue(cursor::MoveTo(0, self.map[0].len() as u16))?
             .queue(style::PrintStyledContent((text).with(Color::Red)))?;
         Ok(())
     }
+
     fn draw_map(&mut self) {
         for r in 0..self.map.len() {
             for c in 0..self.map[0].len() {
@@ -104,10 +94,11 @@ impl<'a> World {
         }
     }
 
-    pub fn init(&mut self, gui: &mut GUI) -> io::Result<()> {
+    pub fn init(&mut self) -> io::Result<()> {
         let _ = terminal::enable_raw_mode();
 
-        gui.stdout
+        self.gui
+            .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(Hide)?;
 
@@ -117,9 +108,10 @@ impl<'a> World {
             tx.send(read_inputs()).unwrap();
         });
 
-        self.game_loop(gui, rx);
+        self.game_loop(rx);
 
-        gui.stdout
+        self.gui
+            .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(MoveTo(0, 0))?
             .execute(Show)?;
@@ -129,33 +121,29 @@ impl<'a> World {
         Ok(())
     }
 
-    fn game_loop(
-        &mut self,
-        &mut gui: GUI,
-        rx: Receiver<Option<KeyCode>>,
-    ) -> io::Result<()> {
+    fn game_loop(&mut self, rx: Receiver<Option<KeyCode>>) -> io::Result<()> {
         let mut now = SystemTime::now();
         loop {
             match now.elapsed() {
                 Ok(elapsed) => {
                     now = SystemTime::now();
 
-                    gui.current_input = match rx.try_recv() {
+                    self.current_input = match rx.try_recv() {
                         Ok(ko) => match ko {
                             Some(k) => Some(k),
-                            None => gui.current_input,
+                            None => self.current_input,
                         },
-                        Err(_) => gui.current_input,
+                        Err(_) => self.current_input,
                     };
 
-                    if gui
+                    if self
                         .current_input
                         .is_some_and(|x| x == KeyCode::Char('q'))
                     {
                         break;
                     }
 
-                    self.update(gui, elapsed.as_secs_f64());
+                    self.update(elapsed.as_secs_f64());
                 }
                 Err(e) => {
                     println!("Error: {e:?}");
@@ -163,7 +151,8 @@ impl<'a> World {
             }
         }
 
-        gui.stdout
+        self.gui
+            .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(MoveTo(0, 0))?
             .execute(Show)?;
@@ -172,7 +161,7 @@ impl<'a> World {
         Ok(())
     }
 
-    fn update(&mut self, mut gui: GUI, delta: f64) {
+    fn update(&mut self, delta: f64) {
         let mut entity_queue: Vec<Entity> = Vec::new();
         entity_queue.append(&mut self.entities);
         for entity in entity_queue.iter_mut() {
@@ -181,7 +170,7 @@ impl<'a> World {
         self.entities.append(&mut entity_queue);
 
         self.draw_map();
-        _ = gui.stdout.flush();
+        _ = self.gui.stdout.flush();
         self.clear_map();
     }
 }
@@ -198,13 +187,11 @@ fn read_inputs() -> Option<KeyCode> {
 
 pub struct GUI {
     stdout: Stdout,
-    pub current_input: Option<KeyCode>,
 }
 
 impl Default for GUI {
     fn default() -> Self {
         GUI {
-            current_input: None,
             stdout: io::stdout(),
         }
     }
