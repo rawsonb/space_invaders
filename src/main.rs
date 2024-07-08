@@ -5,19 +5,8 @@ mod engine;
 mod graphics;
 
 const MAP_HEIGHT: u16 = 15;
-const MAP_WIDTH: u16 = 25;
-const BULLET_SPEED: f64 = 3.5;
-const PLAYER_SPEED: f64 = 4.5;
-
-fn main() {
-    let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
-    world.add_entity(Ship {
-        position: (1.0, 13.0),
-        velocity: 0.0,
-    });
-    world.add_entity(Border {});
-    let _ = world.init();
-}
+const MAP_WIDTH: u16 = 25; // in characters
+const BULLET_SPEED: f64 = 3.5; // characters per second
 
 struct Ship {
     position: (f64, f64),
