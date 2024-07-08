@@ -66,8 +66,8 @@ impl<'a> World {
         self.map[position.0 as usize][position.1 as usize] = (character, color);
     }
 
-    pub fn debug_draw(&mut self, text: &str) ->{
-        self.gui.debug_draw(text, self.map[0].len());
+    pub fn debug_draw(&mut self, text: &str) {
+        let _ = self.gui.debug_draw(text, self.map[0].len() as u16);
     }
 
     fn draw_map(&mut self) {
@@ -81,15 +81,6 @@ impl<'a> World {
             }
         }
     }
-
-    fn clear_map(&mut self) {
-        let width = self.map[0].len();
-        for row in self.map.iter_mut() {
-            row.clear();
-            row.append(&mut vec![(' ', Color::Black); width])
-        }
-    }
-
     pub fn init(&mut self) -> io::Result<()> {
         let _ = terminal::enable_raw_mode();
 
@@ -167,7 +158,6 @@ impl<'a> World {
 
         self.draw_map();
         _ = self.gui.stdout.flush();
-        self.clear_map();
     }
 }
 

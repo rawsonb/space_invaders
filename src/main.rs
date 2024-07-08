@@ -81,7 +81,7 @@ impl Update for Bullet {
 }
 
 fn main() {
-    let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize, 0.2);
+    let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
     world.add_entity(Ship { position: (1, 13) });
     world.add_entity(Border {});
     world.init();
