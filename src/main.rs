@@ -1,5 +1,7 @@
+use std::vec;
+
 use crossterm::{cursor::position, event::KeyCode};
-use engine::{Update, World};
+use engine::{EntityData, Update, World};
 
 mod engine;
 mod graphics;
@@ -25,7 +27,12 @@ struct Ship {
 }
 
 impl Update for Ship {
-    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
+    fn update(
+        &mut self,
+        delta: f64,
+        world: &mut World,
+        id: i64,
+    ) -> Option<fn(&mut Vec<EntityData>)> {
         world.debug_draw(format!("Velocity: {:?}", self.velocity).as_str());
         world.debug_draw(
             format!("\n X_Position: {:?}", self.position.0).as_str(),
@@ -38,12 +45,7 @@ impl Update for Ship {
                 .as_str(),
         );
         world.debug_draw(
-            format!("\n\n\n Current Input: {:?}", world.ui.current_input)
-                .as_str(),
-        );
-        let entity_data = world.get_entity_data(id);
-        world.debug_draw(
-            format!("\n\n\n\n Current Input: {:?}", entity_data[0].tags)
+            format!("\n\n\n\n Num Entities: {:?}", world.entities().len())
                 .as_str(),
         );
         self.position.0 += self.velocity * delta;
@@ -91,13 +93,19 @@ impl Update for Ship {
             crossterm::style::Color::Green,
             id,
         );
+        None
     }
 }
 
 struct Wall {}
 
 impl Update for Wall {
-    fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
+    fn update(
+        &mut self,
+        _delta: f64,
+        world: &mut World,
+        id: i64,
+    ) -> Option<fn(&mut Vec<EntityData>)> {
         for r in 0..MAP_WIDTH {
             for c in 0..MAP_HEIGHT {
                 if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1
@@ -106,6 +114,7 @@ impl Update for Wall {
                 }
             }
         }
+        None
     }
 }
 
@@ -114,7 +123,12 @@ struct Bullet {
 }
 
 impl Update for Bullet {
-    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
+    fn update(
+        &mut self,
+        delta: f64,
+        world: &mut World,
+        id: i64,
+    ) -> Option<fn(&mut Vec<EntityData>)> {
         self.position =
             (self.position.0, self.position.1 - delta * BULLET_SPEED);
         let target_pos =
@@ -132,6 +146,7 @@ impl Update for Bullet {
                 id,
             );
         }
+        None
     }
 }
 
@@ -140,7 +155,13 @@ struct Barrier {
 }
 
 impl Update for Barrier {
-    fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
+    fn update(
+        &mut self,
+        _delta: f64,
+        world: &mut World,
+        id: i64,
+    ) -> Option<fn(&mut Vec<EntityData>)> {
         world.draw(self.position, '#', crossterm::style::Color::Yellow, id);
+        None
     }
 }

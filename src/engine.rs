@@ -1,5 +1,7 @@
 use core::slice;
 use std::{
+    borrow::BorrowMut,
+    clone,
     io::{self, Stdout, Write},
     iter::Map,
     sync::mpsc::{self, Receiver},
@@ -17,7 +19,14 @@ use crossterm::{
 use crate::graphics::UI;
 
 pub trait Update {
-    fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {}
+    fn update(
+        &mut self,
+        _delta: f64,
+        _world: &mut World,
+        _id: i64,
+    ) -> Option<fn(&mut Vec<EntityData>)> {
+        None
+    }
 }
 
 pub struct EntityData {
@@ -27,13 +36,13 @@ pub struct EntityData {
 }
 
 pub struct World {
-    pub entities: Vec<EntityData>,
+    entities: Vec<EntityData>,
     map: Vec<Vec<(char, Color, Vec<i64>)>>,
     pub ui: UI,
-    next_id: i64
+    next_id: i64,
 }
 
-impl<'a> World {
+impl World {
     pub fn new(map_width: usize, map_height: usize) -> Self {
         World {
             entities: Vec::new(),
@@ -42,7 +51,7 @@ impl<'a> World {
                 map_width
             ],
             ui: UI::new(),
-            next_id: 0
+            next_id: 0,
         }
     }
 
@@ -54,7 +63,7 @@ impl<'a> World {
         }
     }
 
-    pub fn add_entity(&'_ mut self, entity_data: impl Update + 'static) {
+    pub fn add_entity(&mut self, entity_data: impl Update + 'static) {
         self.entities.push(EntityData {
             entity: Box::new(entity_data),
             id: self.next_id,
@@ -159,16 +168,20 @@ impl<'a> World {
     }
 
     fn update_entities(&mut self, delta: f64) {
-        let mut entity_queue: Vec<EntityData> = Vec::new();
-        entity_queue.append(&mut self.entities);
-        for entitydata in entity_queue.iter_mut() {
-            entitydata.entity.update(delta, self, entitydata.id);
+        let entity_count = self.entities.len();
+        for i in 0..entity_count {
+            let mut current_entity = self.entities.swap_remove(0);
+            current_entity.entity.update(delta, self, current_entity.id);
+            self.entities.push(current_entity);
         }
-        self.entities.append(&mut entity_queue);
 
         self.draw_map();
         _ = self.ui.stdout.flush();
         self.clear_map();
+    }
+
+    pub fn entities(&self) -> &Vec<EntityData> {
+        return &self.entities;
     }
 
     fn map_query(
@@ -178,10 +191,10 @@ impl<'a> World {
         return self.map[position.0][position.1].clone();
     }
 
-    pub fn get_entity_data(&self, id: i64) -> Vec<&EntityData> {
-        (&self.entities)
-            .into_iter()
+    pub fn add_tag(&mut self, id: i64, tags: &str) {
+        (&mut self.entities)
+            .iter_mut()
             .filter(|x| x.id == id)
-            .collect()
+            .for_each(|x| x.tags.push(tags.to_string().split(" ").collect()));
     }
 }
