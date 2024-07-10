@@ -12,6 +12,7 @@ use std::{
 use crossterm::{
     cursor::{self, Hide, MoveTo, Show},
     event::{read, Event, KeyCode, KeyEvent},
+    queue,
     style::{self, Color, Stylize},
     terminal, ExecutableCommand, QueueableCommand,
 };
@@ -19,14 +20,7 @@ use crossterm::{
 use crate::graphics::UI;
 
 pub trait Update {
-    fn update(
-        &mut self,
-        _delta: f64,
-        _world: &mut World,
-        _id: i64,
-    ) -> Option<fn(&mut Vec<EntityData>)> {
-        None
-    }
+    fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {}
 }
 
 pub struct EntityData {
@@ -36,7 +30,8 @@ pub struct EntityData {
 }
 
 pub struct World {
-    entities: Vec<EntityData>,
+    pub entities: Vec<EntityData>,
+    removal_queue: Vec<i64>,
     map: Vec<Vec<(char, Color, Vec<i64>)>>,
     pub ui: UI,
     next_id: i64,
@@ -52,6 +47,7 @@ impl World {
             ],
             ui: UI::new(),
             next_id: 0,
+            removal_queue: vec![],
         }
     }
 
@@ -73,12 +69,7 @@ impl World {
     }
 
     pub fn remove_entity(&mut self, id: i64) {
-        for i in 0..self.entities.len() {
-            if self.entities[i].id == id {
-                self.entities.swap_remove(i);
-                return;
-            }
-        }
+        self.removal_queue.push(id);
     }
 
     pub fn draw(
@@ -168,9 +159,15 @@ impl World {
     }
 
     fn update_entities(&mut self, delta: f64) {
+        if !self.removal_queue.is_empty() {
+            self.entities
+                .retain(|x| !self.removal_queue.contains(&x.id));
+            self.removal_queue.clear();
+        }
         let entity_count = self.entities.len();
+        let mut current_entity;
         for i in 0..entity_count {
-            let mut current_entity = self.entities.swap_remove(0);
+            current_entity = self.entities.remove(0);
             current_entity.entity.update(delta, self, current_entity.id);
             self.entities.push(current_entity);
         }
@@ -178,10 +175,6 @@ impl World {
         self.draw_map();
         _ = self.ui.stdout.flush();
         self.clear_map();
-    }
-
-    pub fn entities(&self) -> &Vec<EntityData> {
-        return &self.entities;
     }
 
     fn map_query(
