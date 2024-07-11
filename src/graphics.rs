@@ -8,7 +8,7 @@ use crossterm::{
     cursor,
     event::{read, Event, KeyCode},
     style::{self, Color, Stylize},
-    QueueableCommand,
+    terminal, QueueableCommand,
 };
 
 pub struct UI {
@@ -45,13 +45,14 @@ impl UI {
         Ok(())
     }
 
-    pub fn debug_draw(&mut self, text: &str, line: u16) -> io::Result<()> {
+    pub fn debug_draw(&mut self, line: u16, text: &str) -> io::Result<()> {
         self.stdout
             .queue(cursor::MoveTo(0, line))?
+            .queue(terminal::Clear(terminal::ClearType::CurrentLine))?
             .queue(style::PrintStyledContent((text).with(Color::Red)))?;
         Ok(())
     }
-    
+
     pub fn update_input(&mut self) {
         self.current_input = match self.input_reciever.try_recv() {
             Ok(ko) => match ko {

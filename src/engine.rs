@@ -64,16 +64,6 @@ impl World {
         self.removal_queue.push(id);
     }
 
-    pub fn debug_draw(&mut self, line: u16, text: &str) -> io::Result<()> {
-        let write_line = self.map.height as u16 + line;
-        self.ui
-            .stdout
-            .queue(MoveTo(0, write_line))?
-            .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
-        let _ = self.ui.debug_draw(text, write_line);
-        Ok(())
-    }
-
     fn draw(&mut self) {
         let map = &self.map;
         for c in 0..map.width {
