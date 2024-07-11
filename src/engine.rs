@@ -3,7 +3,7 @@ use std::{
     borrow::BorrowMut,
     clone,
     io::{self, Stdout, Write},
-    iter::Map,
+    iter::Map as IterMap,
     sync::mpsc::{self, Receiver},
     thread,
     time::{Duration, Instant, SystemTime},
@@ -23,7 +23,7 @@ use crate::graphics::UI;
 const MIN_FRAME_TIME: f64 = 0.04;
 
 pub trait Update {
-    fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {}
+    fn update(&mut self, delta: f64, world: &mut World, id: i64);
 }
 
 pub struct EntityData {
@@ -35,11 +35,7 @@ pub struct EntityData {
 pub struct World {
     pub entities: Vec<EntityData>,
     removal_queue: Vec<i64>,
-    // TODO This needs to be a struct oh my god.
-    //The first vec are things just draw, the second
-    //vec are things drawn last frame (returned when
-    //querying map)
-    map: Vec<Vec<(char, Color, Vec<i64>, Vec<i64>)>>,
+    pub map: Map,
     pub ui: UI,
     next_id: i64,
 }
@@ -48,28 +44,10 @@ impl World {
     pub fn new(map_width: usize, map_height: usize) -> Self {
         World {
             entities: Vec::new(),
-            map: vec![
-                vec![
-                    ('#', Color::Black, Vec::new(), Vec::new());
-                    map_height
-                ];
-                map_width
-            ],
+            map: Map::new(map_width, map_height),
             ui: UI::new(),
             next_id: 0,
             removal_queue: vec![],
-        }
-    }
-
-    fn clear_map(&mut self) {
-        let width = self.map[0].len();
-        for row in self.map.iter_mut() {
-            for col in row.iter_mut() {
-                col.0 = ' ';
-                col.1 = crossterm::style::Color::Black;
-                col.3.clear();
-                col.3.append(&mut col.2);
-            }
         }
     }
 
@@ -86,24 +64,8 @@ impl World {
         self.removal_queue.push(id);
     }
 
-    pub fn draw(
-        &mut self,
-        position: (u16, u16),
-        character: char,
-        color: Color,
-        id: i64,
-    ) {
-        let mut position = position;
-        position.0 = position.0.clamp(0, self.map.len() as u16 - 1);
-        position.1 = position.1.clamp(0, self.map[0].len() as u16 - 1);
-        let pos = &mut self.map[position.0 as usize][position.1 as usize];
-        pos.0 = character;
-        pos.1 = color;
-        pos.2.push(id);
-    }
-
     pub fn debug_draw(&mut self, line: u16, text: &str) -> io::Result<()> {
-        let write_line = self.map[0].len() as u16 + line;
+        let write_line = self.map.height as u16 + line;
         self.ui
             .stdout
             .queue(MoveTo(0, write_line))?
@@ -112,15 +74,16 @@ impl World {
         Ok(())
     }
 
-    fn draw_map(&mut self) {
-        for r in 0..self.map.len() {
-            for c in 0..self.map[0].len() {
-                if !self.map[r][c].2.is_empty() || !self.map[r][c].3.is_empty()
+    fn draw(&mut self) {
+        let map = &self.map;
+        for c in 0..map.width {
+            for r in 0..map.height {
+                if !map.tiles[c][r].current_contents.is_empty() || !map.tiles[c][r].previous_contents.is_empty()
                 {
                     let _ = self.ui.terminal_draw(
-                        self.map[r][c].0,
-                        (r as u16, c as u16),
-                        self.map[r][c].1,
+                        map.tiles[c][r].display_character,
+                        (c as u16, r as u16),
+                        map.tiles[c][r].color,
                     );
                 }
             }
@@ -194,13 +157,13 @@ impl World {
             self.entities.push(current_entity);
         }
 
-        self.draw_map();
+        self.draw();
         _ = self.ui.stdout.flush();
-        self.clear_map();
+        self.map.clear();
     }
 
     pub fn query_map(&self, position: (usize, usize)) -> &Vec<i64> {
-        return &self.map[position.0][position.1].3;
+        return &self.map.tiles[position.0][position.1].previous_contents;
     }
 
     pub fn add_tag(&mut self, id: i64, tags: &str) {
@@ -209,4 +172,70 @@ impl World {
             .filter(|x| x.id == id)
             .for_each(|x| x.tags.push(tags.to_string().split(" ").collect()));
     }
+}
+
+pub struct Map {
+    width: usize,
+    height: usize,
+    tiles: Vec<Vec<MapTile>>
+}
+
+impl Map {
+    pub fn new(width: usize, height: usize) -> Self {
+        Map {
+            width,
+            height,
+            tiles: vec![
+                vec![
+                    MapTile {
+                        display_character: '#', 
+                        color: Color::Black, 
+                        current_contents: Vec::new(), 
+                        previous_contents: Vec::new()
+                    };
+                    height
+                ];
+                width
+            ]
+        }
+    }
+
+    pub fn clear(&mut self) {
+        for col in self.tiles.iter_mut() {
+            for tile in col.iter_mut() {
+                tile.display_character = ' ';
+                tile.color = crossterm::style::Color::Black;
+                tile.previous_contents.clear();
+                tile.previous_contents.append(&mut tile.current_contents);
+            }
+        }
+    }
+
+    pub fn write(
+        &mut self,
+        position: (u16, u16),
+        character: char,
+        color: Color,
+        id: i64,
+    ) {
+        let mut position = position;
+        position.0 = position.0.clamp(0, self.width as u16 - 1);
+        position.1 = position.1.clamp(0, self.height as u16 - 1);
+        let pos = &mut self.tiles[position.0 as usize][position.1 as usize];
+        pos.display_character = character;
+        pos.color = color;
+        pos.current_contents.push(id);
+    }
+}
+
+#[derive(Clone)]
+pub struct MapTile {
+    display_character: char,
+    color: Color,
+    // TODO This needs to be a struct oh my god.
+    //The first vec are things just draw, the second
+    //vec are things drawn last frame (returned when
+    //querying map)
+    current_contents: Vec<i64>, // by ids
+    previous_contents: Vec<i64>
 }

@@ -1,7 +1,7 @@
 use std::vec;
 
 use crossterm::{cursor::position, event::KeyCode};
-use engine::{EntityData, Update, World};
+use engine::{Update, World};
 
 mod engine;
 mod graphics;
@@ -114,7 +114,7 @@ impl Update for Ship {
             _ => '^',
         };
 
-        world.draw(self.position, visual, crossterm::style::Color::Green, id);
+        world.map.write(self.position, visual, crossterm::style::Color::Green, id);
     }
 }
 
@@ -145,7 +145,7 @@ impl Update for Wall {
             for c in 0..MAP_HEIGHT {
                 if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1
                 {
-                    world.draw((r, c), '#', crossterm::style::Color::Grey, id);
+                    world.map.write((r, c), '#', crossterm::style::Color::Grey, id);
                 }
             }
         }
@@ -165,7 +165,7 @@ impl Update for Bullet {
         if target_pos.1 < 1.0 {
             world.remove_entity(id);
         } else {
-            world.draw(
+            world.map.write(
                 (
                     self.position.0.round() as u16,
                     self.position.1.round() as u16,
@@ -184,6 +184,6 @@ struct Barrier {
 
 impl Update for Barrier {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
-        world.draw(self.position, '#', crossterm::style::Color::Yellow, id);
+        world.map.write(self.position, '#', crossterm::style::Color::Yellow, id);
     }
 }
