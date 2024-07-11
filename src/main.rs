@@ -52,11 +52,16 @@ struct Ship {
 
 impl Update for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        let _ = world.debug_draw(0, format!("Tilt: {:?}", self.tilt).as_str());
-        let _ = world.debug_draw(0, format!("X_Position: {:?}", self.position.0).as_str());
-        let _ = world.debug_draw(1, format!("Last Input: {:?}", world.ui.last_input).as_str());
-        let _ = world.debug_draw(2, format!("Target: {:?}", self.target).as_str());
-        let _ = world.debug_draw(3, format!("Delta: {:?}", delta).as_str());
+        let _ = world.debug_draw(0, 
+            format!("Tilt: {:?}", self.tilt).as_str());
+        let _ = world.debug_draw(0, 
+            format!("X_Position: {:?}", self.position.0).as_str());
+        let _ = world.debug_draw(1, 
+            format!("Last Input: {:?}", world.ui.last_input).as_str());
+        let _ = world.debug_draw(2, 
+            format!("Target: {:?}", self.target).as_str());
+        let _ = world.debug_draw(3, 
+            format!("Delta: {:?}", delta).as_str());
 
         match world.ui.current_input {
             Some(KeyCode::Left) => {

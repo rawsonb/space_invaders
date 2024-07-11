@@ -35,8 +35,8 @@ impl UI {
 
     pub fn terminal_draw(
         &mut self,
-        character: char,
         position: (u16, u16),
+        character: char,
         color: Color,
     ) -> io::Result<()> {
         self.stdout
