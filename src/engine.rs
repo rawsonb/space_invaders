@@ -19,6 +19,9 @@ use crossterm::{
 
 use crate::graphics::UI;
 
+// Drawing too fast causes flickering
+const MIN_FRAME_TIME: f64 = 0.04;
+
 pub trait Update {
     fn update(&mut self, _delta: f64, _world: &mut World, _id: i64) {}
 }
@@ -99,8 +102,14 @@ impl World {
         pos.2.push(id);
     }
 
-    pub fn debug_draw(&mut self, text: &str) {
-        let _ = self.ui.debug_draw(text, self.map[0].len() as u16);
+    pub fn debug_draw(&mut self, line: u16, text: &str) -> io::Result<()> {
+        let write_line = self.map[0].len() as u16 + line;
+        self.ui
+            .stdout
+            .queue(MoveTo(0, write_line))?
+            .queue(terminal::Clear(terminal::ClearType::CurrentLine))?;
+        let _ = self.ui.debug_draw(text, write_line);
+        Ok(())
     }
 
     fn draw_map(&mut self) {
@@ -141,7 +150,14 @@ impl World {
 
     fn game_loop(&mut self) -> io::Result<()> {
         let mut now = Instant::now();
+        let mut delta: f64;
         loop {
+            delta = now.elapsed().as_secs_f64();
+            if delta < MIN_FRAME_TIME {
+                thread::sleep(Duration::from_secs_f64(MIN_FRAME_TIME - delta));
+                delta = now.elapsed().as_secs_f64();
+            }
+            now = Instant::now();
             self.ui.update_input();
             if self
                 .ui
@@ -150,14 +166,8 @@ impl World {
             {
                 break;
             }
-            if now.elapsed().as_secs_f64() < 0.04 {
-                thread::sleep(Duration::from_secs_f64(
-                    0.04 - now.elapsed().as_secs_f64(),
-                ));
-            }
-            self.update_entities((now.elapsed().as_secs_f64()));
+            self.update_entities(delta);
             self.ui.current_input = None;
-            now = Instant::now();
         }
 
         self.ui

@@ -45,27 +45,25 @@ struct Ship {
 
 impl Update for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        world.debug_draw(format!("Tilt: {:?}", self.tilt).as_str());
-        world.debug_draw(
-            format!("\n X_Position: {:?}", self.position.0).as_str(),
+        let _ = world.debug_draw(0, format!("Tilt: {:?}", self.tilt).as_str());
+        let _ = world.debug_draw(
+            0,
+            format!("X_Position: {:?}", self.position.0).as_str(),
         );
-        world.debug_draw(
-            format!("\n\n Last Input: {:?}", world.ui.last_input).as_str(),
+        let _ = world.debug_draw(
+            1,
+            format!("Last Input: {:?}", world.ui.last_input).as_str(),
         );
-        world.debug_draw(
-            format!("\n\n\n Current Input: {:?}", world.ui.current_input)
-                .as_str(),
-        );
-        world
-            .debug_draw(format!("\n\n\n\n Target: {:?}", self.target).as_str());
-        world.debug_draw(format!("\n\n\n\n\n Delta: {:?}", delta).as_str());
+        let _ =
+            world.debug_draw(2, format!("Target: {:?}", self.target).as_str());
+        let _ = world.debug_draw(3, format!("Delta: {:?}", delta).as_str());
         let front = world.query_map((
             self.position.0 as usize,
             (self.position.1 - 1) as usize,
         ));
-        world.debug_draw(
-            format!("\n\n\n\n\n\n Entities In Front: {:?}", front.len())
-                .as_str(),
+        let _ = world.debug_draw(
+            4,
+            format!("Entities In Front: {:?}", front.len()).as_str(),
         );
         match world.ui.current_input {
             Some(KeyCode::Left) => {
@@ -84,16 +82,7 @@ impl Update for Ship {
             }
 
             Some(KeyCode::Up) => {
-                if self.reload <= 0.0 {
-                    world.add_entity(Bullet {
-                        position: (
-                            self.position.0 as f64,
-                            (self.position.1 - 1) as f64,
-                        ),
-                    });
-                    self.reload = PLAYER_RELOAD_TIME;
-                    self.zero_movement();
-                }
+                self.shoot(world);
             }
             _ => {}
         }
@@ -133,6 +122,18 @@ impl Ship {
     fn zero_movement(&mut self) {
         self.tilt = (0.0, 0.0);
         self.target = (0, 0);
+    }
+    fn shoot(&mut self, world: &mut World) {
+        if self.reload <= 0.0 {
+            world.add_entity(Bullet {
+                position: (
+                    self.position.0 as f64,
+                    (self.position.1 - 1) as f64,
+                ),
+            });
+            self.reload = PLAYER_RELOAD_TIME;
+            self.zero_movement();
+        }
     }
 }
 

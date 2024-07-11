@@ -53,7 +53,7 @@ impl UI {
         self.current_input = match self.input_reciever.try_recv() {
             Ok(ko) => match ko {
                 Some(k) => {
-                    self.last_input = self.current_input;
+                    self.last_input = Some(k);
                     Some(k)
                 }
                 None => self.current_input,
