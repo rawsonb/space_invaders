@@ -27,7 +27,8 @@ fn main() {
         target: (1, 0),
     });
 
-    world.add_entity(Wall {});
+    build_walls(&mut world);
+
     world.add_entity(Barrier { position: (4, 12) });
     world.add_entity(Barrier { position: (5, 12) });
     world.add_entity(Barrier { position: (6, 12) });
@@ -41,6 +42,16 @@ fn main() {
     world.add_entity(Barrier { position: (12, 11) });
     world.add_entity(Barrier { position: (19, 11) });
     let _ = world.init();
+}
+
+fn build_walls(world: &mut World) {
+    for r in 0..MAP_WIDTH {
+        for c in 0..MAP_HEIGHT {
+            if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1 {
+                world.add_entity(Wall { position: (r, c) });
+            }
+        }
+    }
 }
 
 struct Ship {
@@ -139,26 +150,6 @@ impl Ship {
     }
 }
 
-struct Wall {}
-
-impl Update for Wall {
-    fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
-        for r in 0..MAP_WIDTH {
-            for c in 0..MAP_HEIGHT {
-                if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1
-                {
-                    world.map.write(
-                        (r, c),
-                        '#',
-                        crossterm::style::Color::Grey,
-                        id,
-                    );
-                }
-            }
-        }
-    }
-}
-
 struct Bullet {
     position: (u16, u16),
     tilt: (f64, f64),
@@ -208,6 +199,18 @@ impl Update for Barrier {
             crossterm::style::Color::Yellow,
             id,
         );
+    }
+}
+
+struct Wall {
+    position: (u16, u16),
+}
+
+impl Update for Wall {
+    fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
+        world
+            .map
+            .write(self.position, '#', crossterm::style::Color::White, id);
     }
 }
 
