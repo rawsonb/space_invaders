@@ -12,6 +12,8 @@ const BULLET_SPEED: f64 = 5.5;
 const PLAYER_SPEED: f64 = 4.5; // characters per second
 const PLAYER_RELOAD_TIME: f64 = 0.3;
 const PLIBBLE_SPEED: f64 = 2.0;
+const PLIBBLER_RELOAD_TIME: f64 = 3.0;
+const PLIBBLER_SPEED: f64 = 1.5;
 
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
@@ -21,10 +23,31 @@ fn main() {
         target: (0, 0),
         reload: PLAYER_RELOAD_TIME,
     });
-    world.add_entity(Plibble {
-        position: (1, 1),
+    world.add_entity(Plibbler {
+        position: (3, 1),
         tilt: (0.0, 0.0),
         target: (1, 0),
+        bounds: (1, 11),
+        reload: PLIBBLER_RELOAD_TIME,
+    });
+    world.add_entity(Plibbler {
+        position: (21, 1),
+        tilt: (0.0, 0.0),
+        target: (-1, 0),
+        bounds: (13, 23),
+        reload: PLIBBLER_RELOAD_TIME,
+    });
+    world.add_entity(Plibble {
+        position: (1, 2),
+        tilt: (0.0, 0.0),
+        target: (1, 0),
+        bounds: (1, 11),
+    });
+    world.add_entity(Plibble {
+        position: (23, 2),
+        tilt: (0.0, 0.0),
+        target: (-1, 0),
+        bounds: (13, 23),
     });
 
     build_walls(&mut world);
@@ -224,6 +247,7 @@ struct Plibble {
     position: (u16, u16),
     tilt: (f64, f64),
     target: (i8, i8),
+    bounds: (u16, u16),
 }
 
 impl Update for Plibble {
@@ -234,23 +258,77 @@ impl Update for Plibble {
         );
 
         if self.tilt.0 >= 1.0 {
-            self.position.0 += 1;
             self.tilt.0 -= 1.0;
-            if self.position.0 == MAP_WIDTH - 2 {
+            if self.position.0 >= self.bounds.1 {
                 self.target.0 = -1;
                 self.position.1 += 1;
+            } else {
+                self.position.0 += 1;
             }
         } else if self.tilt.0 <= -1.0 {
-            self.position.0 -= 1;
             self.tilt.0 += 1.0;
-            if self.position.0 == 1 {
+            if self.position.0 <= self.bounds.0 {
                 self.target.0 = 1;
                 self.position.1 += 1;
+            } else {
+                self.position.0 -= 1;
             }
         }
 
         world
             .map
             .write(self.position, '@', crossterm::style::Color::Red, id);
+    }
+}
+
+struct Plibbler {
+    position: (u16, u16),
+    tilt: (f64, f64),
+    target: (i8, i8),
+    bounds: (u16, u16),
+    reload: f64,
+}
+
+impl Update for Plibbler {
+    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
+        self.tilt = (
+            self.tilt.0 + self.target.0 as f64 * PLIBBLER_SPEED * delta,
+            self.tilt.1 + self.target.1 as f64 * PLIBBLER_SPEED * delta,
+        );
+
+        if self.tilt.0 >= 1.0 {
+            self.tilt.0 -= 1.0;
+            if self.position.0 >= self.bounds.1 {
+                self.target.0 = -1;
+                self.position.1 += 1;
+            } else {
+                self.position.0 += 1;
+            }
+        } else if self.tilt.0 <= -1.0 {
+            self.tilt.0 += 1.0;
+            if self.position.0 <= self.bounds.0 {
+                self.target.0 = 1;
+                self.position.1 += 1;
+            } else {
+                self.position.0 -= 1;
+            }
+        }
+
+        if self.reload >= 0.0 {
+            self.reload -= delta;
+        } else {
+            self.reload = PLIBBLER_RELOAD_TIME;
+            world.add_entity(Plibble {
+                position: self.position,
+                tilt: self.tilt,
+                target: self.target,
+                bounds: self.bounds,
+            });
+            self.tilt.0 -= self.target.0 as f64;
+        }
+
+        world
+            .map
+            .write(self.position, '&', crossterm::style::Color::Red, id);
     }
 }
