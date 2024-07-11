@@ -32,7 +32,11 @@ pub struct EntityData {
 pub struct World {
     pub entities: Vec<EntityData>,
     removal_queue: Vec<i64>,
-    map: Vec<Vec<(char, Color, Vec<i64>, i8)>>,
+    // TODO This needs to be a struct oh my god.
+    //The first vec are things just draw, the second
+    //vec are things drawn last frame (returned when
+    //querying map)
+    map: Vec<Vec<(char, Color, Vec<i64>, Vec<i64>)>>,
     pub ui: UI,
     next_id: i64,
 }
@@ -42,7 +46,10 @@ impl World {
         World {
             entities: Vec::new(),
             map: vec![
-                vec![('#', Color::Black, Vec::new(), 0); map_height];
+                vec![
+                    ('#', Color::Black, Vec::new(), Vec::new());
+                    map_height
+                ];
                 map_width
             ],
             ui: UI::new(),
@@ -54,13 +61,11 @@ impl World {
     fn clear_map(&mut self) {
         let width = self.map[0].len();
         for row in self.map.iter_mut() {
-            for mut col in row.iter_mut() {
+            for col in row.iter_mut() {
                 col.0 = ' ';
                 col.1 = crossterm::style::Color::Black;
-                col.2.clear();
-                if col.3 > 0 {
-                    col.3 -= 1;
-                }
+                col.3.clear();
+                col.3.append(&mut col.2);
             }
         }
     }
@@ -92,7 +97,6 @@ impl World {
         pos.0 = character;
         pos.1 = color;
         pos.2.push(id);
-        pos.3 = 2;
     }
 
     pub fn debug_draw(&mut self, text: &str) {
@@ -102,7 +106,8 @@ impl World {
     fn draw_map(&mut self) {
         for r in 0..self.map.len() {
             for c in 0..self.map[0].len() {
-                if self.map[r][c].3 > 0 {
+                if !self.map[r][c].2.is_empty() || !self.map[r][c].3.is_empty()
+                {
                     let _ = self.ui.terminal_draw(
                         self.map[r][c].0,
                         (r as u16, c as u16),
@@ -173,7 +178,7 @@ impl World {
         }
         let entity_count = self.entities.len();
         let mut current_entity;
-        for i in 0..entity_count {
+        for _i in 0..entity_count {
             current_entity = self.entities.remove(0);
             current_entity.entity.update(delta, self, current_entity.id);
             self.entities.push(current_entity);
@@ -185,7 +190,7 @@ impl World {
     }
 
     pub fn query_map(&self, position: (usize, usize)) -> &Vec<i64> {
-        return &self.map[position.0][position.1].2;
+        return &self.map[position.0][position.1].3;
     }
 
     pub fn add_tag(&mut self, id: i64, tags: &str) {
