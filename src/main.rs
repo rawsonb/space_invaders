@@ -10,12 +10,15 @@ const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25; // in characters
 const BULLET_SPEED: f64 = 3.5;
 const PLAYER_SPEED: f64 = 4.5; // characters per second
+const PLAYER_RELOAD_TIME: f64 = 0.3;
 
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
     world.add_entity(Ship {
         position: (12, 13),
         tilt: (0.0, 0.0),
+        target: (0, 0),
+        reload: PLAYER_RELOAD_TIME,
     });
     world.add_entity(Wall {});
     world.add_entity(Barrier { position: (4, 12) });
@@ -27,12 +30,17 @@ fn main() {
     world.add_entity(Barrier { position: (18, 12) });
     world.add_entity(Barrier { position: (19, 12) });
     world.add_entity(Barrier { position: (20, 12) });
+    world.add_entity(Barrier { position: (5, 11) });
+    world.add_entity(Barrier { position: (12, 11) });
+    world.add_entity(Barrier { position: (19, 11) });
     let _ = world.init();
 }
 
 struct Ship {
     position: (u16, u16),
     tilt: (f64, f64),
+    target: (i8, i8),
+    reload: f64,
 }
 
 impl Update for Ship {
@@ -48,37 +56,50 @@ impl Update for Ship {
             format!("\n\n\n Current Input: {:?}", world.ui.current_input)
                 .as_str(),
         );
-        world.debug_draw(format!("\n\n\n\n Delta: {:?}", delta).as_str());
+        world
+            .debug_draw(format!("\n\n\n\n Target: {:?}", self.target).as_str());
+        world.debug_draw(format!("\n\n\n\n\n Delta: {:?}", delta).as_str());
         match world.ui.current_input {
             Some(KeyCode::Left) => {
-                if world.ui.last_input.is_some_and(|x| x == KeyCode::Right) {
-                    self.tilt = (0.0, 0.0);
-                    world.ui.current_input = None;
+                if self.target.0 == 1 {
+                    self.zero_movement()
                 } else {
-                    self.tilt.0 -= PLAYER_SPEED * delta;
+                    self.target = (-1, 0);
                 }
             }
             Some(KeyCode::Right) => {
-                if world.ui.last_input.is_some_and(|x| x == KeyCode::Left) {
-                    self.tilt = (0.0, 0.0);
-                    world.ui.current_input = None;
+                if self.target.0 == -1 {
+                    self.zero_movement();
                 } else {
-                    self.tilt.0 += PLAYER_SPEED * delta;
+                    self.target = (1, 0);
                 }
             }
 
             Some(KeyCode::Up) => {
-                world.add_entity(Bullet {
-                    position: (
-                        self.position.0 as f64,
-                        (self.position.1 - 1) as f64,
-                    ),
-                });
-                self.tilt = (0.0, 0.0);
-                world.ui.current_input = None;
+                if self.reload <= 0.0 {
+                    world.add_entity(Bullet {
+                        position: (
+                            self.position.0 as f64,
+                            (self.position.1 - 1) as f64,
+                        ),
+                    });
+                    self.reload = PLAYER_RELOAD_TIME;
+                    self.zero_movement();
+                }
             }
             _ => {}
         }
+
+        match self.target.0 {
+            1 => self.tilt.0 += PLAYER_SPEED * delta,
+            -1 => self.tilt.0 -= PLAYER_SPEED * delta,
+            _ => {}
+        }
+
+        if self.reload > 0.0 {
+            self.reload -= delta;
+        }
+
         if self.tilt.0 > 1.0 {
             self.position.0 += 1;
             self.tilt.0 -= 1.0;
@@ -86,10 +107,24 @@ impl Update for Ship {
             self.position.0 -= 1;
             self.tilt.0 += 1.0;
         }
+
         self.position.0 = self.position.0.clamp(1, MAP_WIDTH - 2);
         self.position.1 = self.position.1.clamp(1, MAP_HEIGHT - 2);
 
-        world.draw(self.position, '^', crossterm::style::Color::Green, id);
+        let visual = match self.target.0 {
+            -1 => '<',
+            1 => '>',
+            _ => '^',
+        };
+
+        world.draw(self.position, visual, crossterm::style::Color::Green, id);
+    }
+}
+
+impl Ship {
+    fn zero_movement(&mut self) {
+        self.tilt = (0.0, 0.0);
+        self.target = (0, 0);
     }
 }
 
@@ -127,7 +162,7 @@ impl Update for Bullet {
                     self.position.1.round() as u16,
                 ),
                 '*',
-                crossterm::style::Color::Red,
+                crossterm::style::Color::Blue,
                 id,
             );
         }

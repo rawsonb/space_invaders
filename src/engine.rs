@@ -141,6 +141,7 @@ impl World {
                     }
 
                     self.update_entities(elapsed.as_secs_f64());
+                    self.ui.current_input = None;
                 }
                 Err(e) => {
                     println!("Error: {e:?}");
