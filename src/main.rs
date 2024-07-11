@@ -53,17 +53,11 @@ struct Ship {
 impl Update for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         let _ = world.debug_draw(0, format!("Tilt: {:?}", self.tilt).as_str());
-        let _ = world.debug_draw(
-            0,
-            format!("X_Position: {:?}", self.position.0).as_str(),
-        );
-        let _ = world.debug_draw(
-            1,
-            format!("Last Input: {:?}", world.ui.last_input).as_str(),
-        );
-        let _ =
-            world.debug_draw(2, format!("Target: {:?}", self.target).as_str());
+        let _ = world.debug_draw(0, format!("X_Position: {:?}", self.position.0).as_str());
+        let _ = world.debug_draw(1, format!("Last Input: {:?}", world.ui.last_input).as_str());
+        let _ = world.debug_draw(2, format!("Target: {:?}", self.target).as_str());
         let _ = world.debug_draw(3, format!("Delta: {:?}", delta).as_str());
+
         match world.ui.current_input {
             Some(KeyCode::Left) => {
                 if self.target.0 == 1 {
@@ -104,8 +98,8 @@ impl Update for Ship {
             self.tilt.0 += 1.0;
         }
 
-        self.position.0 = self.position.0.clamp(1, MAP_WIDTH - 2);
-        self.position.1 = self.position.1.clamp(1, MAP_HEIGHT - 2);
+        self.position.0 = self.position.0.clamp(1, world.map.width - 2);
+        self.position.1 = self.position.1.clamp(1, world.map.height - 2);
 
         let visual = match self.target.0 {
             -1 => '<',
