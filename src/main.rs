@@ -59,6 +59,14 @@ impl Update for Ship {
         world
             .debug_draw(format!("\n\n\n\n Target: {:?}", self.target).as_str());
         world.debug_draw(format!("\n\n\n\n\n Delta: {:?}", delta).as_str());
+        let front = world.query_map((
+            self.position.0 as usize,
+            (self.position.1 - 1) as usize,
+        ));
+        world.debug_draw(
+            format!("\n\n\n\n\n\n Entities In Front: {:?}", front.len())
+                .as_str(),
+        );
         match world.ui.current_input {
             Some(KeyCode::Left) => {
                 if self.target.0 == 1 {
