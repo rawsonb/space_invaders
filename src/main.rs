@@ -57,14 +57,6 @@ impl Update for Ship {
         let _ =
             world.debug_draw(2, format!("Target: {:?}", self.target).as_str());
         let _ = world.debug_draw(3, format!("Delta: {:?}", delta).as_str());
-        let front = world.query_map((
-            self.position.0 as usize,
-            (self.position.1 - 1) as usize,
-        ));
-        let _ = world.debug_draw(
-            4,
-            format!("Entities In Front: {:?}", front.len()).as_str(),
-        );
         match world.ui.current_input {
             Some(KeyCode::Left) => {
                 if self.target.0 == 1 {
@@ -114,7 +106,12 @@ impl Update for Ship {
             _ => '^',
         };
 
-        world.map.write(self.position, visual, crossterm::style::Color::Green, id);
+        world.map.write(
+            self.position,
+            visual,
+            crossterm::style::Color::Green,
+            id,
+        );
     }
 }
 
@@ -126,10 +123,8 @@ impl Ship {
     fn shoot(&mut self, world: &mut World) {
         if self.reload <= 0.0 {
             world.add_entity(Bullet {
-                position: (
-                    self.position.0 as f64,
-                    (self.position.1 - 1) as f64,
-                ),
+                position: (self.position.0, self.position.1 - 1),
+                tilt: (0.0, 0.0),
             });
             self.reload = PLAYER_RELOAD_TIME;
             self.zero_movement();
@@ -145,7 +140,12 @@ impl Update for Wall {
             for c in 0..MAP_HEIGHT {
                 if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1
                 {
-                    world.map.write((r, c), '#', crossterm::style::Color::Grey, id);
+                    world.map.write(
+                        (r, c),
+                        '#',
+                        crossterm::style::Color::Grey,
+                        id,
+                    );
                 }
             }
         }
@@ -153,27 +153,38 @@ impl Update for Wall {
 }
 
 struct Bullet {
-    position: (f64, f64),
+    position: (u16, u16),
+    tilt: (f64, f64),
 }
 
 impl Update for Bullet {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        self.position =
-            (self.position.0, self.position.1 - delta * BULLET_SPEED);
-        let target_pos =
-            (self.position.0, self.position.1 - delta * BULLET_SPEED);
-        if target_pos.1 < 1.0 {
+        self.tilt.1 -= delta * BULLET_SPEED;
+        if self.tilt.1 <= -1.0 {
+            self.position.1 -= 1;
+            self.tilt.1 += 1.0;
+        }
+        if self.position.1 <= 0 {
             world.remove_entity(id);
         } else {
-            world.map.write(
-                (
-                    self.position.0.round() as u16,
-                    self.position.1.round() as u16,
-                ),
-                '*',
-                crossterm::style::Color::Blue,
-                id,
-            );
+            let mut other_id = id;
+            match world.map.query(self.position).first() {
+                Some(x) => {
+                    other_id = *x;
+                }
+                None => {}
+            }
+            if other_id == id {
+                world.map.write(
+                    self.position,
+                    '*',
+                    crossterm::style::Color::Blue,
+                    id,
+                );
+            } else {
+                world.remove_entity(id);
+                world.remove_entity(other_id);
+            }
         }
     }
 }
@@ -184,6 +195,11 @@ struct Barrier {
 
 impl Update for Barrier {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
-        world.map.write(self.position, '#', crossterm::style::Color::Yellow, id);
+        world.map.write(
+            self.position,
+            '#',
+            crossterm::style::Color::Yellow,
+            id,
+        );
     }
 }

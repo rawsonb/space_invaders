@@ -78,7 +78,8 @@ impl World {
         let map = &self.map;
         for c in 0..map.width {
             for r in 0..map.height {
-                if !map.tiles[c][r].current_contents.is_empty() || !map.tiles[c][r].previous_contents.is_empty()
+                if !map.tiles[c][r].current_contents.is_empty()
+                    || !map.tiles[c][r].previous_contents.is_empty()
                 {
                     let _ = self.ui.terminal_draw(
                         map.tiles[c][r].display_character,
@@ -162,10 +163,6 @@ impl World {
         self.map.clear();
     }
 
-    pub fn query_map(&self, position: (usize, usize)) -> &Vec<i64> {
-        return &self.map.tiles[position.0][position.1].previous_contents;
-    }
-
     pub fn add_tag(&mut self, id: i64, tags: &str) {
         (&mut self.entities)
             .iter_mut()
@@ -177,7 +174,7 @@ impl World {
 pub struct Map {
     width: usize,
     height: usize,
-    tiles: Vec<Vec<MapTile>>
+    tiles: Vec<Vec<MapTile>>,
 }
 
 impl Map {
@@ -188,15 +185,15 @@ impl Map {
             tiles: vec![
                 vec![
                     MapTile {
-                        display_character: '#', 
-                        color: Color::Black, 
-                        current_contents: Vec::new(), 
+                        display_character: '#',
+                        color: Color::Black,
+                        current_contents: Vec::new(),
                         previous_contents: Vec::new()
                     };
                     height
                 ];
                 width
-            ]
+            ],
         }
     }
 
@@ -226,16 +223,17 @@ impl Map {
         pos.color = color;
         pos.current_contents.push(id);
     }
+
+    pub fn query(&self, position: (u16, u16)) -> &Vec<i64> {
+        return &self.tiles[position.0 as usize][position.1 as usize]
+            .previous_contents;
+    }
 }
 
 #[derive(Clone)]
 pub struct MapTile {
     display_character: char,
     color: Color,
-    // TODO This needs to be a struct oh my god.
-    //The first vec are things just draw, the second
-    //vec are things drawn last frame (returned when
-    //querying map)
     current_contents: Vec<i64>, // by ids
-    previous_contents: Vec<i64>
+    previous_contents: Vec<i64>,
 }
