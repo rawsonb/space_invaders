@@ -32,10 +32,11 @@ impl UI {
             input_reciever: rx,
         }
     }
+
     pub fn terminal_draw(
         &mut self,
-        character: char,
         position: (u16, u16),
+        character: char,
         color: Color,
     ) -> io::Result<()> {
         self.stdout
@@ -43,12 +44,14 @@ impl UI {
             .queue(style::PrintStyledContent((character).with(color)))?;
         Ok(())
     }
+
     pub fn debug_draw(&mut self, text: &str, line: u16) -> io::Result<()> {
         self.stdout
             .queue(cursor::MoveTo(0, line))?
             .queue(style::PrintStyledContent((text).with(Color::Red)))?;
         Ok(())
     }
+    
     pub fn update_input(&mut self) {
         self.current_input = match self.input_reciever.try_recv() {
             Ok(ko) => match ko {

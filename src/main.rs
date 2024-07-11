@@ -63,18 +63,17 @@ struct Ship {
 
 impl Update for Ship {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        let _ = world.debug_draw(0, format!("Tilt: {:?}", self.tilt).as_str());
-        let _ = world.debug_draw(
-            0,
-            format!("X_Position: {:?}", self.position.0).as_str(),
-        );
-        let _ = world.debug_draw(
-            1,
-            format!("Last Input: {:?}", world.ui.last_input).as_str(),
-        );
-        let _ =
-            world.debug_draw(2, format!("Target: {:?}", self.target).as_str());
-        let _ = world.debug_draw(3, format!("Delta: {:?}", delta).as_str());
+        let _ = world.debug_draw(0, 
+            format!("Tilt: {:?}", self.tilt).as_str());
+        let _ = world.debug_draw(0, 
+            format!("X_Position: {:?}", self.position.0).as_str());
+        let _ = world.debug_draw(1, 
+            format!("Last Input: {:?}", world.ui.last_input).as_str());
+        let _ = world.debug_draw(2, 
+            format!("Target: {:?}", self.target).as_str());
+        let _ = world.debug_draw(3, 
+            format!("Delta: {:?}", delta).as_str());
+
         match world.ui.current_input {
             Some(KeyCode::Left) => {
                 if self.target.0 == 1 {
@@ -150,6 +149,29 @@ impl Ship {
     }
 }
 
+<<<<<<< HEAD
+=======
+struct Wall {}
+
+impl Update for Wall {
+    fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
+        for c in 0..MAP_WIDTH {
+            for r in 0..MAP_HEIGHT {
+                if c == 0 || r == 0 || c == MAP_WIDTH - 1 || r == MAP_HEIGHT - 1
+                {
+                    world.map.write(
+                        (c, r),
+                        '#',
+                        crossterm::style::Color::Grey,
+                        id,
+                    );
+                }
+            }
+        }
+    }
+}
+
+>>>>>>> refs/remotes/origin/main
 struct Bullet {
     position: (u16, u16),
     tilt: (f64, f64),

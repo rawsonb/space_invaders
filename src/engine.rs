@@ -82,8 +82,8 @@ impl World {
                     || !map.tiles[c][r].previous_contents.is_empty()
                 {
                     let _ = self.ui.terminal_draw(
-                        map.tiles[c][r].display_character,
                         (c as u16, r as u16),
+                        map.tiles[c][r].display_character,
                         map.tiles[c][r].color,
                     );
                 }
