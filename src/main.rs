@@ -98,8 +98,8 @@ impl Update for Ship {
             self.tilt.0 += 1.0;
         }
 
-        self.position.0 = self.position.0.clamp(1, world.map.width - 2);
-        self.position.1 = self.position.1.clamp(1, world.map.height - 2);
+        self.position.0 = self.position.0.clamp(1, MAP_WIDTH - 2);
+        self.position.1 = self.position.1.clamp(1, MAP_HEIGHT - 2);
 
         let visual = match self.target.0 {
             -1 => '<',
@@ -137,12 +137,12 @@ struct Wall {}
 
 impl Update for Wall {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
-        for r in 0..MAP_WIDTH {
-            for c in 0..MAP_HEIGHT {
-                if r == 0 || c == 0 || r == MAP_WIDTH - 1 || c == MAP_HEIGHT - 1
+        for c in 0..MAP_WIDTH {
+            for r in 0..MAP_HEIGHT {
+                if c == 0 || r == 0 || c == MAP_WIDTH - 1 || r == MAP_HEIGHT - 1
                 {
                     world.map.write(
-                        (r, c),
+                        (c, r),
                         '#',
                         crossterm::style::Color::Grey,
                         id,
