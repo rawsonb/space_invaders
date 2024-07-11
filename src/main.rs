@@ -195,9 +195,9 @@ impl Update for Bullet {
             world.remove_entity(id);
         } else {
             let mut other_id = id;
-            match world.map.query(self.position).first() {
+            match world.query_map(self.position).first() {
                 Some(x) => {
-                    other_id = *x;
+                    other_id = x.id;
                 }
                 None => {}
             }

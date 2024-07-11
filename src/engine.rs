@@ -81,6 +81,16 @@ impl World {
         }
     }
 
+    pub fn query_map(&self, position: (u16, u16)) -> Vec<&EntityData> {
+        let mut world_entities = Vec::new();
+        for entity in self.entities.iter() {
+            if self.map.tiles[position.0 as usize][position.1 as usize].previous_contents.contains(&entity.id) {
+                world_entities.push(entity);
+            }
+        }
+            return world_entities;
+    }
+
     pub fn init(&mut self) -> io::Result<()> {
         let _ = terminal::enable_raw_mode();
 
@@ -212,11 +222,6 @@ impl Map {
         pos.display_character = character;
         pos.color = color;
         pos.current_contents.push(id);
-    }
-
-    pub fn query(&self, position: (u16, u16)) -> &Vec<i64> {
-        return &self.tiles[position.0 as usize][position.1 as usize]
-            .previous_contents;
     }
 }
 
