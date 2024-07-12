@@ -155,6 +155,7 @@ impl Update for Ship {
 
         world.map.write(
             self.position,
+            Some(2),
             visual,
             crossterm::style::Color::Green,
             id,
@@ -204,6 +205,7 @@ impl Update for Bullet {
             if other_id == id {
                 world.map.write(
                     self.position,
+                    Some(1),
                     '*',
                     crossterm::style::Color::Blue,
                     id,
@@ -224,6 +226,7 @@ impl Update for Barrier {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
         world.map.write(
             self.position,
+            Some(3),
             '#',
             crossterm::style::Color::Yellow,
             id,
@@ -239,7 +242,7 @@ impl Update for Wall {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
         world
             .map
-            .write(self.position, '#', crossterm::style::Color::White, id);
+            .write(self.position, None, '#', crossterm::style::Color::White, id);
     }
 }
 
@@ -277,7 +280,7 @@ impl Update for Plibble {
 
         world
             .map
-            .write(self.position, '@', crossterm::style::Color::Red, id);
+            .write(self.position, Some(2), '@', crossterm::style::Color::Red, id);
     }
 }
 
@@ -329,6 +332,6 @@ impl Update for Plibbler {
 
         world
             .map
-            .write(self.position, '&', crossterm::style::Color::Red, id);
+            .write(self.position, Some(2), '&', crossterm::style::Color::Red, id);
     }
 }

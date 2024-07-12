@@ -86,7 +86,7 @@ impl World {
         for entity in self.entities.iter_mut() {
             if self.map.tiles[position.0 as usize][position.1 as usize]
                 .previous_contents
-                .contains(&entity.id)
+                .iter().any(|&(a, b)| &a == &entity.id) // equivalent to vec::contains()
             {
                 world_entities.push(entity);
             }
@@ -214,6 +214,7 @@ impl Map {
     pub fn write(
         &mut self,
         position: (u16, u16),
+        priority: Option<i8>,
         character: char,
         color: Color,
         id: i64,
@@ -222,9 +223,61 @@ impl Map {
         position.0 = position.0.clamp(0, self.width as u16 - 1);
         position.1 = position.1.clamp(0, self.height as u16 - 1);
         let pos = &mut self.tiles[position.0 as usize][position.1 as usize];
-        pos.display_character = character;
-        pos.color = color;
-        pos.current_contents.push(id);
+        
+        if pos.current_contents.is_empty() {
+            pos.display_character = character;
+            pos.color = color;
+            pos.current_contents.push((id, priority.unwrap()));
+            return;
+        }
+        
+        let min_priority = pos.current_contents[0].1;
+        let max_priority = pos.current_contents[pos.current_contents.len() - 1].1;
+        if priority.is_none() {
+            pos.current_contents.push((id, i8::MAX));
+            if min_priority >= i8::MAX {
+                pos.display_character = character;
+                pos.color = color;
+            }
+            return;
+        }
+        let priority = priority.unwrap();
+        if priority < min_priority {
+            pos.display_character = character;
+            pos.color = color;
+            pos.current_contents.insert(0, (id, priority));
+            return;
+        }
+        if priority >= max_priority {
+            if priority > min_priority {
+                pos.current_contents.push((id, priority));
+            } else {
+                pos.display_character = character;
+                pos.color = color;
+                pos.current_contents.push((id, priority));
+            }
+            return;
+        }
+        
+        if priority == min_priority {
+            pos.display_character = character;
+            pos.color = color;
+        }
+        let layer = pos.current_contents.binary_search_by_key(&priority, |&(a, b)| b);
+        match layer {
+            Ok(index) => {
+                for i in index..pos.current_contents.len() {
+                    if pos.current_contents[i].1 != priority {
+                        pos.current_contents.insert(i, (id, priority));
+                        return;
+                    }
+                }
+                pos.current_contents.push((id, priority));
+            },
+            Err(index) => {
+                pos.current_contents.insert(index, (id, priority));
+            }
+        }
     }
 }
 
@@ -232,6 +285,6 @@ impl Map {
 pub struct MapTile {
     display_character: char,
     color: Color,
-    current_contents: Vec<i64>, // by ids
-    previous_contents: Vec<i64>,
+    current_contents: Vec<(i64, i8)>, // (entity id, drawing priority)
+    previous_contents: Vec<(i64, i8)>,
 }
