@@ -1,3 +1,4 @@
+
 use std::{
     io::{self, Stdout},
     sync::mpsc::{self, Receiver},
@@ -10,14 +11,12 @@ use crossterm::{
     style::{self, Color, Stylize},
     terminal, QueueableCommand,
 };
-
 pub struct UI {
     pub stdout: Stdout,
     pub current_input: Option<KeyCode>,
     pub last_input: Option<KeyCode>,
     input_reciever: Receiver<Option<KeyCode>>,
 }
-
 impl UI {
     pub fn new() -> UI {
         let (tx, rx) = mpsc::channel();

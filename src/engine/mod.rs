@@ -1,4 +1,13 @@
 use core::slice;
+use crossterm::{
+    cursor::{self, Hide, MoveTo, Show},
+    event::{read, Event, KeyCode, KeyEvent},
+    queue,
+    style::{self, Color, Stylize},
+    terminal, ExecutableCommand, QueueableCommand,
+};
+use graphics::UI;
+//use space_invaders_macros::Component;
 use std::{
     borrow::BorrowMut,
     clone,
@@ -8,20 +17,9 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime},
 };
-
-use crossterm::{
-    cursor::{self, Hide, MoveTo, Show},
-    event::{read, Event, KeyCode, KeyEvent},
-    queue,
-    style::{self, Color, Stylize},
-    terminal, ExecutableCommand, QueueableCommand,
-};
-
-use crate::graphics::UI;
-
+pub mod graphics;
 // Drawing too fast causes flickering
 const MIN_FRAME_TIME: f64 = 0.04;
-
 pub trait Update {
     fn update(&mut self, delta: f64, world: &mut World, id: i64);
 }

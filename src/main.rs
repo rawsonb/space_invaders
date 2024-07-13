@@ -1,10 +1,8 @@
 use std::vec;
-
-use crossterm::{cursor::position, event::KeyCode};
-use engine::{Update, World};
-
 mod engine;
-mod graphics;
+
+use crate::engine::{Update, World};
+use crossterm::{cursor::position, event::KeyCode};
 
 const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25; // in characters
@@ -14,7 +12,6 @@ const PLAYER_RELOAD_TIME: f64 = 0.3;
 const PLIBBLE_SPEED: f64 = 2.0;
 const PLIBBLER_RELOAD_TIME: f64 = 3.0;
 const PLIBBLER_SPEED: f64 = 1.5;
-
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
     world.add_entity(Ship {
