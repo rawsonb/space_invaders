@@ -1,27 +1,19 @@
-use core::slice;
 use crossterm::{
-    cursor::{self, Hide, MoveTo, Show},
-    event::{read, Event, KeyCode, KeyEvent},
-    queue,
-    style::{self, Color, Stylize},
-    terminal, ExecutableCommand, QueueableCommand,
+    cursor::{Hide, MoveTo, Show},
+    event::KeyCode,
+    style::Color,
+    terminal, ExecutableCommand,
 };
-use graphics::UI;
+use ui::UI;
 //use space_invaders_macros::Component;
 use std::{
     any::{Any, TypeId},
-    borrow::BorrowMut,
-    clone,
     collections::HashMap,
-    hash::Hash,
-    io::{self, Stdout, Write},
-    iter::Map as IterMap,
-    path::Component,
-    sync::mpsc::{self, Receiver},
+    io::{self, Write},
     thread,
-    time::{Duration, Instant, SystemTime},
+    time::{Duration, Instant},
 };
-pub mod graphics;
+pub mod ui;
 // Drawing too fast causes flickering
 const MIN_FRAME_TIME: f64 = 0.04;
 pub trait Entity {
@@ -32,6 +24,7 @@ pub trait Entity {
 pub struct EntityData {
     pub entity: Box<dyn Entity>,
     pub id: i64,
+    started: bool,
 }
 
 pub struct World {
@@ -59,7 +52,9 @@ impl World {
         self.entities.push(EntityData {
             entity: Box::new(entity_data),
             id: self.next_id,
+            started: false,
         });
+        self.components.insert(self.next_id, HashMap::new());
         self.next_id += 1;
     }
 
@@ -104,7 +99,6 @@ impl World {
             .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(Hide)?;
-        self.start_entities();
         let _ = self.game_loop();
 
         self.ui
@@ -150,16 +144,6 @@ impl World {
         Ok(())
     }
 
-    fn start_entities(&mut self) {
-        let entity_count = self.entities.len();
-        let mut current_entity;
-        for _i in 0..entity_count {
-            current_entity = self.entities.remove(0);
-            current_entity.entity.start(self, current_entity.id);
-            self.entities.push(current_entity);
-        }
-    }
-
     fn update_entities(&mut self, delta: f64) {
         if !self.removal_queue.is_empty() {
             self.entities
@@ -170,6 +154,10 @@ impl World {
         let mut current_entity;
         for _i in 0..entity_count {
             current_entity = self.entities.remove(0);
+            if !current_entity.started {
+                current_entity.entity.start(self, current_entity.id);
+                current_entity.started = true;
+            }
             current_entity.entity.update(delta, self, current_entity.id);
             self.entities.push(current_entity);
         }
@@ -181,9 +169,9 @@ impl World {
     pub fn get_component<T: 'static>(&mut self, id: i64) -> Option<&mut T> {
         match self.components.get_mut(&id) {
             Some(x) => {
-                let type_id = TypeId::of::<T>();
-                let component =
-                    x.get_mut(&stringify!(TypeId::of::<T>()).to_string());
+                let type_string =
+                    format!("{:?}", TypeId::of::<T>()).to_string();
+                let component = x.get_mut(&type_string);
                 match component {
                     Some(cb) => cb.downcast_mut::<T>(),
                     None => None,
@@ -196,19 +184,11 @@ impl World {
     pub fn set_component<T: 'static>(&mut self, id: i64, component: T) {
         match self.components.get_mut(&id) {
             Some(x) => {
-                x.insert(
-                    stringify!(TypeId::of::<T>()).to_string(),
-                    Box::new(component),
-                );
+                let type_string =
+                    format!("{:?}", TypeId::of::<T>()).to_string();
+                x.insert(type_string, Box::new(component));
             }
-            None => {
-                self.components.insert(id, HashMap::new());
-                let new_map = self.components.get_mut(&id).unwrap();
-                new_map.insert(
-                    stringify!(TypeId::of::<T>()).to_string(),
-                    Box::new(component),
-                );
-            }
+            None => {}
         }
     }
 }

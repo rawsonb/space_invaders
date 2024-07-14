@@ -1,4 +1,4 @@
-use std::vec;
+use std::{os::linux::raw::stat, vec};
 mod engine;
 use crate::engine::{Entity, World};
 use crossterm::{cursor::position, event::KeyCode};
@@ -13,6 +13,15 @@ const PLIBBLER_SPEED: f64 = 1.5;
 
 struct Health {
     hp: f64,
+}
+
+enum Alignment {
+    Player,
+    Enemy,
+}
+
+struct Align {
+    alignment: Alignment,
 }
 
 fn main() {
@@ -87,6 +96,12 @@ struct Ship {
 impl Entity for Ship {
     fn start(&mut self, world: &mut World, id: i64) {
         world.set_component(id, Health { hp: 10.0 });
+        world.set_component(
+            id,
+            Align {
+                alignment: Alignment::Player,
+            },
+        );
     }
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         let _ = world
@@ -155,19 +170,12 @@ impl Entity for Ship {
             1 => '>',
             _ => '^',
         };
-
         world.map.write(
             self.position,
             visual,
             crossterm::style::Color::Green,
             id,
         );
-        world.set_component(id, Health { hp: 10.0 });
-        let health = world.get_component::<Health>(id).unwrap().hp;
-
-        let _ = world
-            .ui
-            .debug_draw(20, format!("Got hp: {:?}", health).as_str());
     }
 }
 
@@ -260,6 +268,14 @@ struct Plibble {
 }
 
 impl Entity for Plibble {
+    fn start(&mut self, world: &mut World, id: i64) {
+        world.set_component(
+            id,
+            Align {
+                alignment: Alignment::Enemy,
+            },
+        );
+    }
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         self.tilt = (
             self.tilt.0 + self.target.0 as f64 * PLIBBLE_SPEED * delta,
@@ -299,6 +315,14 @@ struct Plibbler {
 }
 
 impl Entity for Plibbler {
+    fn start(&mut self, world: &mut World, id: i64) {
+        world.set_component(
+            id,
+            Align {
+                alignment: Alignment::Enemy,
+            },
+        );
+    }
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         self.tilt = (
             self.tilt.0 + self.target.0 as f64 * PLIBBLER_SPEED * delta,

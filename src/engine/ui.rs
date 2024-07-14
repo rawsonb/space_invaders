@@ -1,4 +1,3 @@
-
 use std::{
     io::{self, Stdout},
     sync::mpsc::{self, Receiver},
