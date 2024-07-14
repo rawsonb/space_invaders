@@ -9,10 +9,13 @@ use crossterm::{
 use graphics::UI;
 //use space_invaders_macros::Component;
 use std::{
+    any::{Any, TypeId},
     borrow::BorrowMut,
     clone,
+    collections::HashMap,
     io::{self, Stdout, Write},
     iter::Map as IterMap,
+    path::Component,
     sync::mpsc::{self, Receiver},
     thread,
     time::{Duration, Instant, SystemTime},
@@ -27,7 +30,7 @@ pub trait Update {
 pub struct EntityData {
     pub entity: Box<dyn Update>,
     pub id: i64,
-    pub tags: Vec<String>,
+    components: HashMap<TypeId, Box<dyn Any>>,
 }
 
 pub struct World {
@@ -53,7 +56,7 @@ impl World {
         self.entities.push(EntityData {
             entity: Box::new(entity_data),
             id: self.next_id,
-            tags: vec![],
+            components: HashMap::new(),
         });
         self.next_id += 1;
     }
@@ -163,12 +166,28 @@ impl World {
         _ = self.ui.stdout.flush();
         self.map.clear();
     }
+    // NEED TO CLEAN THIS UP BUT IM TIRED
+    pub fn get_component<T: 'static>(&mut self, id: i64) -> Option<&mut T> {
+        match self.entities.iter_mut().find(|x| x.id == id) {
+            Some(x) => {
+                let type_id = TypeId::of::<T>();
+                let component = x.components.get_mut(&type_id);
+                match component {
+                    Some(cb) => cb.downcast_mut::<T>(),
+                    None => None,
+                }
+            }
+            None => None,
+        }
+    }
 
-    pub fn add_tag(&mut self, id: i64, tags: &str) {
-        (&mut self.entities)
-            .iter_mut()
-            .filter(|x| x.id == id)
-            .for_each(|x| x.tags.push(tags.to_string().split(" ").collect()));
+    pub fn add_component<T: 'static>(&mut self, id: i64, component: T) {
+        match self.entities.iter_mut().find(|x| x.id == id) {
+            Some(x) => {
+                x.components.insert(TypeId::of::<T>(), Box::new(component));
+            }
+            None => {}
+        }
     }
 }
 

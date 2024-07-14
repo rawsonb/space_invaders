@@ -1,9 +1,7 @@
 use std::vec;
 mod engine;
-
 use crate::engine::{Update, World};
 use crossterm::{cursor::position, event::KeyCode};
-
 const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25; // in characters
 const BULLET_SPEED: f64 = 5.5;

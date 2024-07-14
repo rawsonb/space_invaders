@@ -1,11 +1,7 @@
-workspace = { members = ["space_invaders_macros"] }
-
 [package]
 name = "space_invaders"
 version = "0.1.0"
 edition = "2021"
-resolver = "2"
 
 [dependencies]
 crossterm = "0.27.0"
-space-invaders-macros = { path = "./space_invaders_macros" } 
