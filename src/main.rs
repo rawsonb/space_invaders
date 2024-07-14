@@ -1,6 +1,6 @@
 use std::vec;
 mod engine;
-use crate::engine::{Update, World};
+use crate::engine::{Entity, World};
 use crossterm::{cursor::position, event::KeyCode};
 const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25; // in characters
@@ -10,6 +10,11 @@ const PLAYER_RELOAD_TIME: f64 = 0.3;
 const PLIBBLE_SPEED: f64 = 2.0;
 const PLIBBLER_RELOAD_TIME: f64 = 3.0;
 const PLIBBLER_SPEED: f64 = 1.5;
+
+struct Health {
+    hp: f64,
+}
+
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
     world.add_entity(Ship {
@@ -79,7 +84,10 @@ struct Ship {
     reload: f64,
 }
 
-impl Update for Ship {
+impl Entity for Ship {
+    fn start(&mut self, world: &mut World, id: i64) {
+        world.set_component(id, Health { hp: 10.0 });
+    }
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         let _ = world
             .ui
@@ -154,6 +162,12 @@ impl Update for Ship {
             crossterm::style::Color::Green,
             id,
         );
+        world.set_component(id, Health { hp: 10.0 });
+        let health = world.get_component::<Health>(id).unwrap().hp;
+
+        let _ = world
+            .ui
+            .debug_draw(20, format!("Got hp: {:?}", health).as_str());
     }
 }
 
@@ -179,7 +193,7 @@ struct Bullet {
     tilt: (f64, f64),
 }
 
-impl Update for Bullet {
+impl Entity for Bullet {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         self.tilt.1 -= delta * BULLET_SPEED;
         if self.tilt.1 <= -1.0 {
@@ -215,7 +229,7 @@ struct Barrier {
     position: (u16, u16),
 }
 
-impl Update for Barrier {
+impl Entity for Barrier {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
         world.map.write(
             self.position,
@@ -230,7 +244,7 @@ struct Wall {
     position: (u16, u16),
 }
 
-impl Update for Wall {
+impl Entity for Wall {
     fn update(&mut self, _delta: f64, world: &mut World, id: i64) {
         world
             .map
@@ -245,7 +259,7 @@ struct Plibble {
     bounds: (u16, u16),
 }
 
-impl Update for Plibble {
+impl Entity for Plibble {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         self.tilt = (
             self.tilt.0 + self.target.0 as f64 * PLIBBLE_SPEED * delta,
@@ -284,7 +298,7 @@ struct Plibbler {
     reload: f64,
 }
 
-impl Update for Plibbler {
+impl Entity for Plibbler {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
         self.tilt = (
             self.tilt.0 + self.target.0 as f64 * PLIBBLER_SPEED * delta,

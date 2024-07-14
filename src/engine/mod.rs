@@ -13,6 +13,7 @@ use std::{
     borrow::BorrowMut,
     clone,
     collections::HashMap,
+    hash::Hash,
     io::{self, Stdout, Write},
     iter::Map as IterMap,
     path::Component,
@@ -23,14 +24,14 @@ use std::{
 pub mod graphics;
 // Drawing too fast causes flickering
 const MIN_FRAME_TIME: f64 = 0.04;
-pub trait Update {
-    fn update(&mut self, delta: f64, world: &mut World, id: i64);
+pub trait Entity {
+    fn start(&mut self, world: &mut World, id: i64) {}
+    fn update(&mut self, delta: f64, world: &mut World, id: i64) {}
 }
 
 pub struct EntityData {
-    pub entity: Box<dyn Update>,
+    pub entity: Box<dyn Entity>,
     pub id: i64,
-    components: HashMap<TypeId, Box<dyn Any>>,
 }
 
 pub struct World {
@@ -39,6 +40,7 @@ pub struct World {
     pub map: Map,
     pub ui: UI,
     next_id: i64,
+    components: HashMap<i64, HashMap<String, Box<dyn Any>>>,
 }
 
 impl World {
@@ -49,14 +51,14 @@ impl World {
             ui: UI::new(),
             next_id: 0,
             removal_queue: vec![],
+            components: HashMap::new(),
         }
     }
 
-    pub fn add_entity(&mut self, entity_data: impl Update + 'static) {
+    pub fn add_entity(&mut self, entity_data: impl Entity + 'static) {
         self.entities.push(EntityData {
             entity: Box::new(entity_data),
             id: self.next_id,
-            components: HashMap::new(),
         });
         self.next_id += 1;
     }
@@ -102,7 +104,7 @@ impl World {
             .stdout
             .execute(terminal::Clear(terminal::ClearType::All))?
             .execute(Hide)?;
-
+        self.start_entities();
         let _ = self.game_loop();
 
         self.ui
@@ -148,6 +150,16 @@ impl World {
         Ok(())
     }
 
+    fn start_entities(&mut self) {
+        let entity_count = self.entities.len();
+        let mut current_entity;
+        for _i in 0..entity_count {
+            current_entity = self.entities.remove(0);
+            current_entity.entity.start(self, current_entity.id);
+            self.entities.push(current_entity);
+        }
+    }
+
     fn update_entities(&mut self, delta: f64) {
         if !self.removal_queue.is_empty() {
             self.entities
@@ -166,12 +178,12 @@ impl World {
         _ = self.ui.stdout.flush();
         self.map.clear();
     }
-    // NEED TO CLEAN THIS UP BUT IM TIRED
     pub fn get_component<T: 'static>(&mut self, id: i64) -> Option<&mut T> {
-        match self.entities.iter_mut().find(|x| x.id == id) {
+        match self.components.get_mut(&id) {
             Some(x) => {
                 let type_id = TypeId::of::<T>();
-                let component = x.components.get_mut(&type_id);
+                let component =
+                    x.get_mut(&stringify!(TypeId::of::<T>()).to_string());
                 match component {
                     Some(cb) => cb.downcast_mut::<T>(),
                     None => None,
@@ -181,12 +193,22 @@ impl World {
         }
     }
 
-    pub fn add_component<T: 'static>(&mut self, id: i64, component: T) {
-        match self.entities.iter_mut().find(|x| x.id == id) {
+    pub fn set_component<T: 'static>(&mut self, id: i64, component: T) {
+        match self.components.get_mut(&id) {
             Some(x) => {
-                x.components.insert(TypeId::of::<T>(), Box::new(component));
+                x.insert(
+                    stringify!(TypeId::of::<T>()).to_string(),
+                    Box::new(component),
+                );
             }
-            None => {}
+            None => {
+                self.components.insert(id, HashMap::new());
+                let new_map = self.components.get_mut(&id).unwrap();
+                new_map.insert(
+                    stringify!(TypeId::of::<T>()).to_string(),
+                    Box::new(component),
+                );
+            }
         }
     }
 }
