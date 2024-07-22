@@ -1,28 +1,18 @@
 use std::{os::linux::raw::stat, vec};
 mod engine;
 use crate::engine::{Entity, World};
+use core::mem::discriminant as tag;
 use crossterm::{cursor::position, event::KeyCode};
 const MAP_HEIGHT: u16 = 15;
 const MAP_WIDTH: u16 = 25; // in characters
-const BULLET_SPEED: f64 = 5.5;
+const BULLET_SPEED: f64 = 5.0;
 const PLAYER_SPEED: f64 = 4.5; // characters per second
 const PLAYER_RELOAD_TIME: f64 = 0.3;
 const PLIBBLE_SPEED: f64 = 2.0;
 const PLIBBLER_RELOAD_TIME: f64 = 3.0;
 const PLIBBLER_SPEED: f64 = 1.5;
-
-struct Health {
-    hp: f64,
-}
-
-enum Alignment {
-    Player,
-    Enemy,
-}
-
-struct Align {
-    alignment: Alignment,
-}
+const SHOOTLER_SPEED: f64 = 1.0;
+const SHOOTLER_RELOAD_TIME: f64 = 2.0;
 
 fn main() {
     let mut world = World::new(MAP_WIDTH as usize, MAP_HEIGHT as usize);
@@ -66,6 +56,15 @@ fn main() {
             bounds: (13, 23),
         },
     });
+    world.add_entity(Shootler {
+        motion: EnemyMotion {
+            position: (23, 2),
+            tilt: (0.0, 0.0),
+            target: (-1, 0),
+            bounds: (13, 23),
+        },
+        reload: SHOOTLER_RELOAD_TIME,
+    });
 
     build_walls(&mut world);
 
@@ -92,6 +91,19 @@ fn build_walls(world: &mut World) {
             }
         }
     }
+}
+
+struct Health {
+    hp: f64,
+}
+
+enum Alignment {
+    Player = 0,
+    Enemy,
+}
+
+struct Align {
+    alignment: Alignment,
 }
 
 struct Ship {
@@ -223,8 +235,11 @@ impl Entity for Bullet {
         if self.tilt.1 <= -1.0 {
             self.position.1 -= 1;
             self.tilt.1 += 1.0;
+        } else if self.tilt.1 >= 1.0 {
+            self.position.1 += 1;
+            self.tilt.1 -= 1.0;
         }
-        if self.position.1 <= 0 {
+        if self.position.1 <= 0 || self.position.1 >= MAP_HEIGHT - 1 {
             world.remove_entity(id);
         } else {
             let mut other_id = id;
@@ -237,8 +252,24 @@ impl Entity for Bullet {
             if other_id == id {
                 world.map.write(self.position, '*', self.color, id);
             } else {
-                world.remove_entity(id);
-                world.remove_entity(other_id);
+                let struck_alignment: Option<&mut Align> =
+                    world.get_component(other_id);
+                match struck_alignment {
+                    Some(x) => {
+                        if (tag(&x.alignment) == tag(&Alignment::Enemy)
+                            && self.from_player)
+                            || (tag(&x.alignment) == tag(&Alignment::Player)
+                                && !self.from_player)
+                        {
+                            world.remove_entity(id);
+                            world.remove_entity(other_id);
+                        }
+                    }
+                    None => {
+                        world.remove_entity(id);
+                        world.remove_entity(other_id);
+                    }
+                }
             }
         }
     }
@@ -369,6 +400,49 @@ impl Entity for Plibbler {
         world.map.write(
             self.motion.position,
             '&',
+            crossterm::style::Color::Red,
+            id,
+        );
+    }
+}
+
+struct Shootler {
+    motion: EnemyMotion,
+    reload: f64,
+}
+
+impl Entity for Shootler {
+    fn start(&mut self, world: &mut World, id: i64) {
+        world.set_component(
+            id,
+            Align {
+                alignment: Alignment::Enemy,
+            },
+        );
+    }
+    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
+        self.motion.update(delta, world, id, SHOOTLER_SPEED);
+
+        if self.reload >= 0.0 {
+            self.reload -= delta;
+        } else {
+            self.reload = SHOOTLER_RELOAD_TIME;
+            world.add_entity(Bullet {
+                position: self.motion.position,
+                tilt: self.motion.tilt,
+                from_player: false,
+                color: crossterm::style::Color::DarkRed,
+            });
+            self.motion.tilt.0 -= self.motion.target.0 as f64;
+        }
+        let mut visual = 'S';
+        if self.reload > SHOOTLER_RELOAD_TIME * 0.9 {
+            visual = '$';
+        }
+
+        world.map.write(
+            self.motion.position,
+            visual,
             crossterm::style::Color::Red,
             id,
         );
