@@ -33,30 +33,38 @@ fn main() {
         reload: PLAYER_RELOAD_TIME,
     });
     world.add_entity(Plibbler {
-        position: (3, 1),
-        tilt: (0.0, 0.0),
-        target: (1, 0),
-        bounds: (1, 11),
+        motion: EnemyMotion {
+            position: (3, 1),
+            tilt: (0.0, 0.0),
+            target: (1, 0),
+            bounds: (1, 11),
+        },
         reload: PLIBBLER_RELOAD_TIME,
     });
     world.add_entity(Plibbler {
-        position: (21, 1),
-        tilt: (0.0, 0.0),
-        target: (-1, 0),
-        bounds: (13, 23),
+        motion: EnemyMotion {
+            position: (21, 1),
+            tilt: (0.0, 0.0),
+            target: (-1, 0),
+            bounds: (13, 23),
+        },
         reload: PLIBBLER_RELOAD_TIME,
     });
     world.add_entity(Plibble {
-        position: (1, 2),
-        tilt: (0.0, 0.0),
-        target: (1, 0),
-        bounds: (1, 11),
+        motion: EnemyMotion {
+            position: (1, 2),
+            tilt: (0.0, 0.0),
+            target: (1, 0),
+            bounds: (1, 11),
+        },
     });
     world.add_entity(Plibble {
-        position: (23, 2),
-        tilt: (0.0, 0.0),
-        target: (-1, 0),
-        bounds: (13, 23),
+        motion: EnemyMotion {
+            position: (23, 2),
+            tilt: (0.0, 0.0),
+            target: (-1, 0),
+            bounds: (13, 23),
+        },
     });
 
     build_walls(&mut world);
@@ -189,6 +197,8 @@ impl Ship {
             world.add_entity(Bullet {
                 position: (self.position.0, self.position.1 - 1),
                 tilt: (0.0, 0.0),
+                from_player: true,
+                color: crossterm::style::Color::DarkGreen,
             });
             self.reload = PLAYER_RELOAD_TIME;
             self.zero_movement();
@@ -199,11 +209,17 @@ impl Ship {
 struct Bullet {
     position: (u16, u16),
     tilt: (f64, f64),
+    from_player: bool,
+    color: crossterm::style::Color,
 }
 
 impl Entity for Bullet {
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        self.tilt.1 -= delta * BULLET_SPEED;
+        self.tilt.1 += if self.from_player {
+            -delta * BULLET_SPEED
+        } else {
+            delta * BULLET_SPEED
+        };
         if self.tilt.1 <= -1.0 {
             self.position.1 -= 1;
             self.tilt.1 += 1.0;
@@ -219,12 +235,7 @@ impl Entity for Bullet {
                 None => {}
             }
             if other_id == id {
-                world.map.write(
-                    self.position,
-                    '*',
-                    crossterm::style::Color::Blue,
-                    id,
-                );
+                world.map.write(self.position, '*', self.color, id);
             } else {
                 world.remove_entity(id);
                 world.remove_entity(other_id);
@@ -260,26 +271,18 @@ impl Entity for Wall {
     }
 }
 
-struct Plibble {
+struct EnemyMotion {
     position: (u16, u16),
     tilt: (f64, f64),
     target: (i8, i8),
     bounds: (u16, u16),
 }
 
-impl Entity for Plibble {
-    fn start(&mut self, world: &mut World, id: i64) {
-        world.set_component(
-            id,
-            Align {
-                alignment: Alignment::Enemy,
-            },
-        );
-    }
-    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
+impl EnemyMotion {
+    fn update(&mut self, delta: f64, world: &mut World, id: i64, speed: f64) {
         self.tilt = (
-            self.tilt.0 + self.target.0 as f64 * PLIBBLE_SPEED * delta,
-            self.tilt.1 + self.target.1 as f64 * PLIBBLE_SPEED * delta,
+            self.tilt.0 + self.target.0 as f64 * speed * delta,
+            self.tilt.1 + self.target.1 as f64 * speed * delta,
         );
 
         if self.tilt.0 >= 1.0 {
@@ -306,11 +309,33 @@ impl Entity for Plibble {
     }
 }
 
+struct Plibble {
+    motion: EnemyMotion,
+}
+
+impl Entity for Plibble {
+    fn start(&mut self, world: &mut World, id: i64) {
+        world.set_component(
+            id,
+            Align {
+                alignment: Alignment::Enemy,
+            },
+        );
+    }
+    fn update(&mut self, delta: f64, world: &mut World, id: i64) {
+        self.motion.update(delta, world, id, PLIBBLE_SPEED);
+
+        world.map.write(
+            self.motion.position,
+            '@',
+            crossterm::style::Color::Red,
+            id,
+        );
+    }
+}
+
 struct Plibbler {
-    position: (u16, u16),
-    tilt: (f64, f64),
-    target: (i8, i8),
-    bounds: (u16, u16),
+    motion: EnemyMotion,
     reload: f64,
 }
 
@@ -324,44 +349,28 @@ impl Entity for Plibbler {
         );
     }
     fn update(&mut self, delta: f64, world: &mut World, id: i64) {
-        self.tilt = (
-            self.tilt.0 + self.target.0 as f64 * PLIBBLER_SPEED * delta,
-            self.tilt.1 + self.target.1 as f64 * PLIBBLER_SPEED * delta,
-        );
-
-        if self.tilt.0 >= 1.0 {
-            self.tilt.0 -= 1.0;
-            if self.position.0 >= self.bounds.1 {
-                self.target.0 = -1;
-                self.position.1 += 1;
-            } else {
-                self.position.0 += 1;
-            }
-        } else if self.tilt.0 <= -1.0 {
-            self.tilt.0 += 1.0;
-            if self.position.0 <= self.bounds.0 {
-                self.target.0 = 1;
-                self.position.1 += 1;
-            } else {
-                self.position.0 -= 1;
-            }
-        }
+        self.motion.update(delta, world, id, PLIBBLER_SPEED);
 
         if self.reload >= 0.0 {
             self.reload -= delta;
         } else {
             self.reload = PLIBBLER_RELOAD_TIME;
             world.add_entity(Plibble {
-                position: self.position,
-                tilt: self.tilt,
-                target: self.target,
-                bounds: self.bounds,
+                motion: EnemyMotion {
+                    position: self.motion.position,
+                    tilt: self.motion.tilt,
+                    target: self.motion.target,
+                    bounds: self.motion.bounds,
+                },
             });
-            self.tilt.0 -= self.target.0 as f64;
+            self.motion.tilt.0 -= self.motion.target.0 as f64;
         }
 
-        world
-            .map
-            .write(self.position, '&', crossterm::style::Color::Red, id);
+        world.map.write(
+            self.motion.position,
+            '&',
+            crossterm::style::Color::Red,
+            id,
+        );
     }
 }
