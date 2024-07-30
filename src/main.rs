@@ -1,5 +1,5 @@
 use std::{os::linux::raw::stat, vec};
-mod engine;
+extern crate engine;
 use crate::engine::{Entity, World};
 use core::mem::discriminant as tag;
 use crossterm::{cursor::position, event::KeyCode};
